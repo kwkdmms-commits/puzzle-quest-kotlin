@@ -127,7 +127,7 @@
             android:text="Home"
             android:textSize="14sp"
             android:layout_margin="4dp"
-            android:backgroundTint="@color/light_gray" />
+            android:backgroundTint="@color/gray" />
 
         <Button
             android:id="@+id/btn_more_time"
