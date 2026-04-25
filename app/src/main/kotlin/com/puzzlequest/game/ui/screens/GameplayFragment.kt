@@ -22,7 +22,7 @@ class GameplayFragment : Fragment() {
     private lateinit var puzzleBoard: PuzzleBoardView
     private var currentLevel = 1
     private var timerSeconds = 0
-    private var timerTask: kotlin.concurrent.TimerTask? = null
+    private var timerTask: TimerTask? = null
     private var hintsUsed = 0
     private var moreTimeUsed = 0
     private var isGameActive = true
