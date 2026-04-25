@@ -9,19 +9,34 @@ import kotlin.random.Random
 class GameEngine(context: Context, private val level: Level) {
     private val pieces = mutableListOf<PuzzlePiece>()
     private val gridSize = level.gridSize
-    private val snapThreshold = 50 // pixels
+    private val snapThreshold = 40 // pixels
     private val pieceManager = PuzzlePieceManager(context, level)
     private val pieceSize = pieceManager.getPieceSize()
+    
+    // Board dimensions (will be set by view)
+    private var boardSize = 0
+    private var boardOffsetX = 0f
+    private var boardOffsetY = 0f
+    
+    // Store starting positions for pieces
+    private val startingPositions = mutableMapOf<Int, Pair<Float, Float>>()
 
     init {
         initializePuzzle()
     }
 
+    fun setBoardDimensions(size: Int, offsetX: Float, offsetY: Float) {
+        this.boardSize = size
+        this.boardOffsetX = offsetX
+        this.boardOffsetY = offsetY
+    }
+
     private fun initializePuzzle() {
         pieces.clear()
+        startingPositions.clear()
         val totalPieces = gridSize * gridSize
 
-        // Create all pieces with correct positions
+        // Create all pieces with correct grid positions
         for (i in 0 until totalPieces) {
             val gridX = i % gridSize
             val gridY = i / gridSize
@@ -38,28 +53,39 @@ class GameEngine(context: Context, private val level: Level) {
             )
         }
 
-        // Shuffle pieces to random positions (ensuring none start in correct position)
-        shufflePieces()
+        // Shuffle pieces to random positions WITHIN the board grid
+        shufflePiecesInBoard()
     }
 
-    private fun shufflePieces() {
-        val screenWidth = 1080f // Approximate screen width
-        val screenHeight = 1920f // Approximate screen height
+    private fun shufflePiecesInBoard() {
         val random = Random(System.currentTimeMillis())
+        val availablePositions = mutableListOf<Pair<Int, Int>>()
 
-        var allInCorrectPosition = true
-        do {
-            for (piece in pieces) {
-                piece.currentX = random.nextFloat() * (screenWidth - pieceSize)
-                piece.currentY = random.nextFloat() * (screenHeight - pieceSize)
-                piece.isLocked = false
-
-                // Check if piece is in correct position
-                if (!isInCorrectPosition(piece)) {
-                    allInCorrectPosition = false
-                }
+        // Generate all grid positions
+        for (row in 0 until gridSize) {
+            for (col in 0 until gridSize) {
+                availablePositions.add(Pair(col, row))
             }
-        } while (allInCorrectPosition)
+        }
+
+        // Shuffle positions
+        availablePositions.shuffle(random)
+
+        // Assign shuffled positions to pieces
+        for ((index, piece) in pieces.withIndex()) {
+            val (shuffledCol, shuffledRow) = availablePositions[index]
+            
+            // Calculate pixel position within board
+            val pixelX = boardOffsetX + shuffledCol * pieceSize
+            val pixelY = boardOffsetY + shuffledRow * pieceSize
+            
+            piece.currentX = pixelX
+            piece.currentY = pixelY
+            piece.isLocked = false
+            
+            // Store starting position for snap-back
+            startingPositions[piece.id] = Pair(pixelX, pixelY)
+        }
     }
 
     fun getPieces(): List<PuzzlePiece> = pieces
@@ -84,13 +110,16 @@ class GameEngine(context: Context, private val level: Level) {
             piece.isLocked = true
             snapToCorrectPosition(piece)
             return true
+        } else {
+            // Snap back to starting position if dropped in wrong spot
+            snapBackToStartingPosition(piece)
         }
         return false
     }
 
     private fun isNearCorrectPosition(piece: PuzzlePiece): Boolean {
-        val correctX = piece.gridX * pieceSize.toFloat()
-        val correctY = piece.gridY * pieceSize.toFloat()
+        val correctX = boardOffsetX + piece.gridX * pieceSize
+        val correctY = boardOffsetY + piece.gridY * pieceSize
 
         val distX = abs(piece.currentX - correctX)
         val distY = abs(piece.currentY - correctY)
@@ -98,16 +127,17 @@ class GameEngine(context: Context, private val level: Level) {
         return distX < snapThreshold && distY < snapThreshold
     }
 
-    private fun isInCorrectPosition(piece: PuzzlePiece): Boolean {
-        val correctX = piece.gridX * pieceSize.toFloat()
-        val correctY = piece.gridY * pieceSize.toFloat()
-
-        return piece.currentX == correctX && piece.currentY == correctY && piece.isLocked
+    private fun snapToCorrectPosition(piece: PuzzlePiece) {
+        piece.currentX = boardOffsetX + (piece.gridX * pieceSize).toFloat()
+        piece.currentY = boardOffsetY + (piece.gridY * pieceSize).toFloat()
     }
 
-    private fun snapToCorrectPosition(piece: PuzzlePiece) {
-        piece.currentX = (piece.gridX * pieceSize).toFloat()
-        piece.currentY = (piece.gridY * pieceSize).toFloat()
+    private fun snapBackToStartingPosition(piece: PuzzlePiece) {
+        val startPos = startingPositions[piece.id]
+        if (startPos != null) {
+            piece.currentX = startPos.first
+            piece.currentY = startPos.second
+        }
     }
 
     fun isLevelComplete(): Boolean {

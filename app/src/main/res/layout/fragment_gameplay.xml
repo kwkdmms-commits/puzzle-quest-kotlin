@@ -4,15 +4,15 @@
     android:layout_height="match_parent"
     android:background="@color/light_bg"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="16dp">
 
-    <!-- Header -->
+    <!-- Header with Level and Timer -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="8dp">
+        android:paddingBottom="16dp">
 
         <TextView
             android:id="@+id/tv_level"
@@ -20,17 +20,38 @@
             android:layout_height="wrap_content"
             android:text="Level 1"
             android:textColor="@color/red"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_weight="1" />
 
-        <TextView
-            android:id="@+id/tv_timer"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="00:00"
-            android:textColor="@color/teal_700"
-            android:textSize="20sp" />
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Moves: 0"
+                android:textColor="@color/red"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_timer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:05"
+                android:textColor="@color/teal_700"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
+
+    <!-- Top spacer -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="32dp" />
 
     <!-- Pieces counter -->
     <TextView
@@ -39,17 +60,35 @@
         android:layout_height="wrap_content"
         android:text="0 / 16 Pieces Placed"
         android:textColor="@color/cyan"
-        android:textSize="16sp"
+        android:textSize="18sp"
+        android:textStyle="bold"
         android:gravity="center"
-        android:paddingBottom="8dp" />
+        android:paddingBottom="16dp" />
 
-    <!-- Puzzle board -->
-    <com.puzzlequest.game.ui.views.PuzzleBoardView
-        android:id="@+id/puzzle_board"
+    <!-- Puzzle board container (centered, square) -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@color/white" />
+        android:gravity="center">
+
+        <com.puzzlequest.game.ui.views.PuzzleBoardView
+            android:id="@+id/puzzle_board"
+            android:layout_width="320dp"
+            android:layout_height="320dp"
+            android:background="@color/white" />
+    </FrameLayout>
+
+    <!-- Instruction text -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🎯 Drag pieces. Drop on correct spot to lock."
+        android:textColor="@color/red"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp" />
 
     <!-- Controls -->
     <LinearLayout
@@ -57,39 +96,48 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:paddingTop="8dp">
-
-        <Button
-            android:id="@+id/btn_home"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:text="🏠"
-            android:textSize="24sp"
-            android:layout_margin="4dp" />
-
-        <Button
-            android:id="@+id/btn_restart"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:text="🔄"
-            android:textSize="24sp"
-            android:layout_margin="4dp" />
-
-        <Button
-            android:id="@+id/btn_more_time"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:text="⏱️"
-            android:textSize="24sp"
-            android:layout_margin="4dp" />
+        android:paddingTop="8dp"
+        android:spacing="8dp">
 
         <Button
             android:id="@+id/btn_hint"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:text="💡"
-            android:textSize="24sp"
-            android:layout_margin="4dp" />
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="Hint"
+            android:textSize="14sp"
+            android:layout_margin="4dp"
+            android:backgroundTint="@color/yellow" />
+
+        <Button
+            android:id="@+id/btn_restart"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="Restart"
+            android:textSize="14sp"
+            android:layout_margin="4dp"
+            android:backgroundTint="@color/red" />
+
+        <Button
+            android:id="@+id/btn_home"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="Home"
+            android:textSize="14sp"
+            android:layout_margin="4dp"
+            android:backgroundTint="@color/light_gray" />
+
+        <Button
+            android:id="@+id/btn_more_time"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="Reset"
+            android:textSize="14sp"
+            android:layout_margin="4dp"
+            android:backgroundTint="@color/red" />
 
     </LinearLayout>
 

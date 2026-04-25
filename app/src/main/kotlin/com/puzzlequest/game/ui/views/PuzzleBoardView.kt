@@ -16,19 +16,27 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
     private var draggedPieceId: Int? = null
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
+    private var boardInitialized = false
 
     private val borderPaint = Paint().apply {
         isAntiAlias = true
         style = Paint.Style.STROKE
         color = Color.BLACK
-        strokeWidth = 2f
+        strokeWidth = 1f
     }
 
     private val lockedBorderPaint = Paint().apply {
         isAntiAlias = true
         style = Paint.Style.STROKE
         color = Color.GREEN
-        strokeWidth = 4f
+        strokeWidth = 3f
+    }
+
+    private val gridPaint = Paint().apply {
+        isAntiAlias = true
+        style = Paint.Style.STROKE
+        color = Color.LTGRAY
+        strokeWidth = 1f
     }
 
     fun setGameEngine(engine: GameEngine) {
@@ -40,16 +48,51 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
         this.onPieceLocked = callback
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        
+        // Initialize board dimensions for the game engine
+        if (!boardInitialized && gameEngine != null) {
+            val boardSize = minOf(w, h)
+            val offsetX = (w - boardSize) / 2f
+            val offsetY = (h - boardSize) / 2f
+            gameEngine?.setBoardDimensions(boardSize, offsetX, offsetY)
+            boardInitialized = true
+            invalidate()
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         gameEngine?.let { engine ->
             val pieceManager = engine.getPieceManager()
             val pieceSize = engine.getPieceSize()
+            val gridSize = pieceManager.getGridSize()
 
-            engine.getPieces().forEach { piece ->
+            // Draw grid lines
+            drawGrid(canvas, gridSize, pieceSize)
+
+            // Draw pieces (locked pieces on top)
+            val unlockedPieces = engine.getPieces().filter { !it.isLocked }
+            val lockedPieces = engine.getPieces().filter { it.isLocked }
+
+            unlockedPieces.forEach { piece ->
                 drawPuzzlePiece(canvas, piece, pieceManager, pieceSize)
             }
+
+            lockedPieces.forEach { piece ->
+                drawPuzzlePiece(canvas, piece, pieceManager, pieceSize)
+            }
+        }
+    }
+
+    private fun drawGrid(canvas: Canvas, gridSize: Int, pieceSize: Int) {
+        // Draw grid lines to show the puzzle grid
+        for (i in 0..gridSize) {
+            val pos = i * pieceSize
+            canvas.drawLine(pos.toFloat(), 0f, pos.toFloat(), (gridSize * pieceSize).toFloat(), gridPaint)
+            canvas.drawLine(0f, pos.toFloat(), (gridSize * pieceSize).toFloat(), pos.toFloat(), gridPaint)
         }
     }
 
@@ -83,9 +126,11 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
                 draggedPieceId = findPieceAt(event.x, event.y)
                 if (draggedPieceId != null) {
                     val piece = gameEngine?.getPieces()?.find { it.id == draggedPieceId }
-                    if (piece != null) {
+                    if (piece != null && !piece.isLocked) {
                         dragOffsetX = event.x - piece.currentX
                         dragOffsetY = event.y - piece.currentY
+                    } else {
+                        draggedPieceId = null
                     }
                 }
                 return true
@@ -118,6 +163,7 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
 
     private fun findPieceAt(x: Float, y: Float): Int? {
         val pieceSize = gameEngine?.getPieceSize() ?: return null
+        // Find the topmost piece at this position (reverse order to get the last drawn piece)
         return gameEngine?.getPieces()?.findLast { piece ->
             x >= piece.currentX && x <= piece.currentX + pieceSize &&
                     y >= piece.currentY && y <= piece.currentY + pieceSize
