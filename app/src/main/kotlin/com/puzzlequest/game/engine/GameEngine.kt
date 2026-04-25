@@ -1,15 +1,17 @@
 package com.puzzlequest.game.engine
 
+import android.content.Context
 import com.puzzlequest.game.data.Level
 import com.puzzlequest.game.data.PuzzlePiece
 import kotlin.math.abs
 import kotlin.random.Random
 
-class GameEngine(private val level: Level) {
+class GameEngine(context: Context, private val level: Level) {
     private val pieces = mutableListOf<PuzzlePiece>()
     private val gridSize = level.gridSize
-    private val pieceSize = 100 // pixels
     private val snapThreshold = 50 // pixels
+    private val pieceManager = PuzzlePieceManager(context, level)
+    private val pieceSize = pieceManager.getPieceSize()
 
     init {
         initializePuzzle()
@@ -61,6 +63,10 @@ class GameEngine(private val level: Level) {
     }
 
     fun getPieces(): List<PuzzlePiece> = pieces
+
+    fun getPieceManager(): PuzzlePieceManager = pieceManager
+
+    fun getPieceSize(): Int = pieceSize
 
     fun movePiece(pieceId: Int, newX: Float, newY: Float) {
         val piece = pieces.find { it.id == pieceId } ?: return
@@ -118,5 +124,9 @@ class GameEngine(private val level: Level) {
 
     fun resetLevel() {
         initializePuzzle()
+    }
+
+    fun cleanup() {
+        pieceManager.cleanup()
     }
 }

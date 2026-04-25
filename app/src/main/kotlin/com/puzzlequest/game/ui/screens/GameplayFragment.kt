@@ -57,7 +57,7 @@ class GameplayFragment : Fragment() {
         preferencesManager = (activity as MainActivity).preferencesManager
 
         val level = LevelConfig.getLevel(currentLevel)
-        gameEngine = GameEngine(level)
+        gameEngine = GameEngine(requireContext(), level)
 
         puzzleBoard = view.findViewById(R.id.puzzle_board)
         puzzleBoard.setGameEngine(gameEngine)
@@ -168,5 +168,6 @@ class GameplayFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         stopTimer()
+        gameEngine?.cleanup()
     }
 }

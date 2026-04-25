@@ -17,12 +17,6 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
 
-    private val paint = Paint().apply {
-        isAntiAlias = true
-        style = Paint.Style.FILL
-        color = Color.GRAY
-    }
-
     private val borderPaint = Paint().apply {
         isAntiAlias = true
         style = Paint.Style.STROKE
@@ -49,31 +43,36 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        gameEngine?.getPieces()?.forEach { piece ->
-            drawPuzzlePiece(canvas, piece)
+        gameEngine?.let { engine ->
+            val pieceManager = engine.getPieceManager()
+            val pieceSize = engine.getPieceSize()
+
+            engine.getPieces().forEach { piece ->
+                drawPuzzlePiece(canvas, piece, pieceManager, pieceSize)
+            }
         }
     }
 
-    private fun drawPuzzlePiece(canvas: Canvas, piece: PuzzlePiece) {
-        val size = 100f
-
-        // Draw piece background
-        paint.color = if (piece.isLocked) Color.GREEN else Color.LTGRAY
-        canvas.drawRect(
-            piece.currentX,
-            piece.currentY,
-            piece.currentX + size,
-            piece.currentY + size,
-            paint
-        )
+    private fun drawPuzzlePiece(canvas: Canvas, piece: PuzzlePiece, pieceManager: com.puzzlequest.game.engine.PuzzlePieceManager, pieceSize: Int) {
+        val bitmap = pieceManager.getPieceBitmap(piece.id)
+        
+        if (bitmap != null) {
+            // Draw the bitmap piece
+            canvas.drawBitmap(
+                bitmap,
+                piece.currentX,
+                piece.currentY,
+                null
+            )
+        }
 
         // Draw border
         val border = if (piece.isLocked) lockedBorderPaint else borderPaint
         canvas.drawRect(
             piece.currentX,
             piece.currentY,
-            piece.currentX + size,
-            piece.currentY + size,
+            piece.currentX + pieceSize,
+            piece.currentY + pieceSize,
             border
         )
     }
@@ -118,9 +117,10 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
     }
 
     private fun findPieceAt(x: Float, y: Float): Int? {
+        val pieceSize = gameEngine?.getPieceSize() ?: return null
         return gameEngine?.getPieces()?.findLast { piece ->
-            x >= piece.currentX && x <= piece.currentX + 100f &&
-                    y >= piece.currentY && y <= piece.currentY + 100f
+            x >= piece.currentX && x <= piece.currentX + pieceSize &&
+                    y >= piece.currentY && y <= piece.currentY + pieceSize
         }?.id
     }
 }
