@@ -1,6 +1,8 @@
 package com.puzzlequest.game.ui.screens
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,8 +15,6 @@ import com.puzzlequest.game.data.LevelConfig
 import com.puzzlequest.game.engine.GameEngine
 import com.puzzlequest.game.ui.views.PuzzleBoardView
 import com.puzzlequest.game.utils.PreferencesManager
-import kotlin.concurrent.timer
-import kotlin.concurrent.TimerTask
 
 class GameplayFragment : Fragment() {
     private lateinit var preferencesManager: PreferencesManager
@@ -22,7 +22,8 @@ class GameplayFragment : Fragment() {
     private lateinit var puzzleBoard: PuzzleBoardView
     private var currentLevel = 1
     private var timerSeconds = 0
-    private var timerTask: TimerTask? = null
+    private var timerRunnable: Runnable? = null
+    private val timerHandler = Handler(Looper.getMainLooper())
     private var hintsUsed = 0
     private var moreTimeUsed = 0
     private var isGameActive = true
@@ -81,32 +82,42 @@ class GameplayFragment : Fragment() {
     }
 
     private fun startTimer(tvTimer: TextView, tvPieces: TextView) {
-        timerTask = timer(initialDelay = 1000, period = 1000) {
-            if (isGameActive) {
-                timerSeconds++
-                val minutes = timerSeconds / 60
-                val seconds = timerSeconds % 60
-                tvTimer.post {
+        // Create a runnable that updates the timer every 1 second
+        timerRunnable = object : Runnable {
+            override fun run() {
+                if (isGameActive) {
+                    timerSeconds++
+                    val minutes = timerSeconds / 60
+                    val seconds = timerSeconds % 60
                     tvTimer.text = getString(R.string.timer, minutes, seconds)
                 }
+                // Schedule the next update in 1 second
+                timerHandler.postDelayed(this, 1000)
             }
-        }.asTask()
+        }
+
+        // Start the timer
+        timerHandler.postDelayed(timerRunnable!!, 1000)
 
         // Update pieces count
-        tvPieces.post {
-            tvPieces.text = getString(
-                R.string.pieces_placed,
-                gameEngine.getLockedPiecesCount(),
-                gameEngine.getTotalPieces()
-            )
-        }
+        tvPieces.text = getString(
+            R.string.pieces_placed,
+            gameEngine.getLockedPiecesCount(),
+            gameEngine.getTotalPieces()
+        )
     }
 
     private fun checkLevelComplete() {
         if (gameEngine.isLevelComplete()) {
             isGameActive = false
-            timerTask?.cancel()
+            stopTimer()
             showWinScreen()
+        }
+    }
+
+    private fun stopTimer() {
+        if (timerRunnable != null) {
+            timerHandler.removeCallbacks(timerRunnable!!)
         }
     }
 
@@ -156,8 +167,6 @@ class GameplayFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        timerTask?.cancel()
+        stopTimer()
     }
 }
-
-private fun TimerTask.asTask() = this
