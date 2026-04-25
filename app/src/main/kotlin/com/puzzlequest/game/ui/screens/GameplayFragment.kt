@@ -14,6 +14,7 @@ import com.puzzlequest.game.engine.GameEngine
 import com.puzzlequest.game.ui.views.PuzzleBoardView
 import com.puzzlequest.game.utils.PreferencesManager
 import kotlin.concurrent.timer
+import kotlin.concurrent.TimerTask
 
 class GameplayFragment : Fragment() {
     private lateinit var preferencesManager: PreferencesManager
