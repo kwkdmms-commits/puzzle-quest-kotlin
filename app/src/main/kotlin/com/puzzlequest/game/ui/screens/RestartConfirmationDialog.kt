@@ -20,7 +20,5 @@ class RestartConfirmationDialog(private val onConfirm: () -> Unit) : DialogFragm
             .create()
     }
 
-    fun show(fragmentManager: FragmentManager, tag: String) {
-        show(fragmentManager, tag)
-    }
+
 }
