@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/light_bg"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="space_between"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/tv_level"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Level 1"
+            android:textColor="@color/red"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_timer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textColor="@color/teal_700"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+    <!-- Pieces counter -->
+    <TextView
+        android:id="@+id/tv_pieces"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0 / 16 Pieces Placed"
+        android:textColor="@color/cyan"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:paddingBottom="8dp" />
+
+    <!-- Puzzle board -->
+    <com.puzzlequest.game.ui.views.PuzzleBoardView
+        android:id="@+id/puzzle_board"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/white" />
+
+    <!-- Controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:spacing="8dp"
+        android:paddingTop="8dp">
+
+        <Button
+            android:id="@+id/btn_home"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:text="🏠"
+            android:textSize="24sp"
+            android:layout_margin="4dp" />
+
+        <Button
+            android:id="@+id/btn_restart"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:text="🔄"
+            android:textSize="24sp"
+            android:layout_margin="4dp" />
+
+        <Button
+            android:id="@+id/btn_more_time"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:text="⏱️"
+            android:textSize="24sp"
+            android:layout_margin="4dp" />
+
+        <Button
+            android:id="@+id/btn_hint"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:text="💡"
+            android:textSize="24sp"
+            android:layout_margin="4dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

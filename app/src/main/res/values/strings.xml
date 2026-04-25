@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Puzzle Quest</string>
+    <string name="play">Play - Level %d</string>
+    <string name="remove_ads">Remove Ads</string>
+    <string name="quit">Quit</string>
+    <string name="level">Level %d</string>
+    <string name="moves">Moves: %d</string>
+    <string name="timer">%02d:%02d</string>
+    <string name="pieces_placed">%d / %d Pieces Placed</string>
+    <string name="home">🏠</string>
+    <string name="restart">🔄</string>
+    <string name="more_time">⏱️ More Time</string>
+    <string name="hint">💡 Hint</string>
+    <string name="next_level">Next Level</string>
+    <string name="restart_level">Restart Level</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="restart_confirmation">Restart Level?</string>
+    <string name="close">✕</string>
+    <string name="drag_instruction">Drag pieces. Drop on correct spot to lock.</string>
+</resources>

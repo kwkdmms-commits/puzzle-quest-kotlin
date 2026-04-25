@@ -1,0 +1,58 @@
+# Gradle files
+.gradle/
+build/
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log/OS Files
+*.log
+.DS_Store
+
+# Android Studio generated files and folders
+.idea/
+.classpath
+.c9/
+*.class
+*.dex
+*.ear
+*.iml
+*.jar
+*.rar
+*.war
+*.zip
+*.tar.gz
+*.rar
+.DS_Store
+bin/
+gen/
+out/
+.gradle
+.idea
+*.iml
+*.apk
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+.gradle/
+build/
+.idea/
+*.iml
+*.log
+.DS_Store
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (if you use Firebase)
+google-services.json
+
+# Android Profiler
+*.trace
