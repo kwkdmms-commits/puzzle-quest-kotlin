@@ -62,6 +62,7 @@ class GameplayFragment : Fragment() {
         puzzleBoard = view.findViewById(R.id.puzzle_board)
         puzzleBoard.setGameEngine(gameEngine)
         puzzleBoard.setOnPieceLocked { checkLevelComplete() }
+        puzzleBoard.setOnStateChange { updatePiecesCounter() }
 
         val tvLevel = view.findViewById<TextView>(R.id.tv_level)
         val tvTimer = view.findViewById<TextView>(R.id.tv_timer)
@@ -163,6 +164,15 @@ class GameplayFragment : Fragment() {
             hintsUsed++
             // Show hint dialog
         }
+    }
+
+    private fun updatePiecesCounter() {
+        val tvPieces = view?.findViewById<TextView>(R.id.tv_pieces) ?: return
+        tvPieces.text = getString(
+            R.string.pieces_placed,
+            gameEngine.getLockedCount(),
+            gameEngine.getTotalPieces()
+        )
     }
 
     override fun onDestroyView() {

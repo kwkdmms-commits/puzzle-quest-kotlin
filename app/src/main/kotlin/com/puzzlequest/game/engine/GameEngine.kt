@@ -2,158 +2,207 @@ package com.puzzlequest.game.engine
 
 import android.content.Context
 import com.puzzlequest.game.data.Level
-import com.puzzlequest.game.data.PuzzlePiece
-import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.random.Random
 
+data class GridPiece(
+    val id: String,
+    val correctRow: Int,
+    val correctCol: Int,
+    var isLocked: Boolean = false
+)
+
+data class GameState(
+    val gridSize: Int,
+    val grid: Array<Array<GridPiece>>,
+    var lockedCount: Int = 0,
+    var totalPieces: Int = 0,
+    var isWon: Boolean = false
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GameState) return false
+        if (gridSize != other.gridSize) return false
+        if (lockedCount != other.lockedCount) return false
+        if (totalPieces != other.totalPieces) return false
+        if (isWon != other.isWon) return false
+        if (!grid.contentDeepEquals(other.grid)) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = gridSize
+        result = 31 * result + grid.contentDeepHashCode()
+        result = 31 * result + lockedCount
+        result = 31 * result + totalPieces
+        result = 31 * result + isWon.hashCode()
+        return result
+    }
+}
+
 class GameEngine(context: Context, private val level: Level) {
-    private val pieces = mutableListOf<PuzzlePiece>()
-    private val gridSize = level.gridSize
-    private val snapThreshold = 40 // pixels
     private val pieceManager = PuzzlePieceManager(context, level)
-    private val pieceSize = pieceManager.getPieceSize()
+    private val gridSize = level.gridSize
+    private var gameState: GameState
     
-    // Board dimensions (will be set by view)
+    // Board dimensions
     private var boardSize = 0
-    private var boardOffsetX = 0f
-    private var boardOffsetY = 0f
-    
-    // Store starting positions for pieces
-    private val startingPositions = mutableMapOf<Int, Pair<Float, Float>>()
+    private var pieceSize = 0
+    private var moveCount = 0
 
     init {
-        initializePuzzle()
+        gameState = initializeGame()
     }
 
-    fun setBoardDimensions(size: Int, offsetX: Float, offsetY: Float) {
-        this.boardSize = size
-        this.boardOffsetX = offsetX
-        this.boardOffsetY = offsetY
+    fun setBoardDimensions(screenWidth: Int, screenHeight: Int) {
+        // Match React logic: maxBoardSize = min(screenWidth - 32, screenHeight * 0.5)
+        val maxBoardSize = minOf(screenWidth - 32, (screenHeight * 0.5).toInt())
+        this.pieceSize = floor(maxBoardSize.toFloat() / gridSize).toInt()
+        this.boardSize = pieceSize * gridSize
     }
 
-    private fun initializePuzzle() {
-        pieces.clear()
-        startingPositions.clear()
+    private fun initializeGame(): GameState {
         val totalPieces = gridSize * gridSize
-
-        // Create all pieces with correct grid positions
-        for (i in 0 until totalPieces) {
-            val gridX = i % gridSize
-            val gridY = i / gridSize
-            pieces.add(
-                PuzzlePiece(
-                    id = i,
-                    gridX = gridX,
-                    gridY = gridY,
-                    imageResId = level.imageResId,
-                    currentX = 0f,
-                    currentY = 0f,
-                    isLocked = false
-                )
-            )
-        }
-
-        // Shuffle pieces to random positions WITHIN the board grid
-        shufflePiecesInBoard()
-    }
-
-    private fun shufflePiecesInBoard() {
-        val random = Random(System.currentTimeMillis())
-        val availablePositions = mutableListOf<Pair<Int, Int>>()
-
-        // Generate all grid positions
+        
+        // Create pieces with their correct positions
+        val pieces = mutableListOf<GridPiece>()
         for (row in 0 until gridSize) {
             for (col in 0 until gridSize) {
-                availablePositions.add(Pair(col, row))
+                pieces.add(
+                    GridPiece(
+                        id = "piece-$row-$col",
+                        correctRow = row,
+                        correctCol = col,
+                        isLocked = false
+                    )
+                )
             }
         }
-
-        // Shuffle positions
-        availablePositions.shuffle(random)
-
-        // Assign shuffled positions to pieces
-        for ((index, piece) in pieces.withIndex()) {
-            val (shuffledCol, shuffledRow) = availablePositions[index]
+        
+        // Shuffle pieces until NO piece is in its correct position (derangement)
+        var shuffledPieces = pieces.shuffled()
+        var hasCorrectPosition = true
+        
+        while (hasCorrectPosition) {
+            hasCorrectPosition = false
             
-            // Calculate pixel position within board
-            val pixelX = boardOffsetX + shuffledCol * pieceSize
-            val pixelY = boardOffsetY + shuffledRow * pieceSize
+            // Check if any piece is already in its correct position
+            for (i in shuffledPieces.indices) {
+                val piece = shuffledPieces[i]
+                val row = i / gridSize
+                val col = i % gridSize
+                
+                if (piece.correctRow == row && piece.correctCol == col) {
+                    hasCorrectPosition = true
+                    break
+                }
+            }
             
-            piece.currentX = pixelX
-            piece.currentY = pixelY
-            piece.isLocked = false
-            
-            // Store starting position for snap-back
-            startingPositions[piece.id] = Pair(pixelX, pixelY)
+            // If any piece is correct, reshuffle
+            if (hasCorrectPosition) {
+                shuffledPieces = pieces.shuffled()
+            }
         }
+        
+        // Create grid with shuffled pieces
+        val grid = Array(gridSize) { Array(gridSize) { GridPiece("", 0, 0) } }
+        var pieceIndex = 0
+        for (row in 0 until gridSize) {
+            for (col in 0 until gridSize) {
+                grid[row][col] = shuffledPieces[pieceIndex++]
+            }
+        }
+        
+        return GameState(
+            gridSize = gridSize,
+            grid = grid,
+            lockedCount = 0,
+            totalPieces = totalPieces,
+            isWon = false
+        )
     }
 
-    fun getPieces(): List<PuzzlePiece> = pieces
+    fun getGameState(): GameState = gameState
 
     fun getPieceManager(): PuzzlePieceManager = pieceManager
 
     fun getPieceSize(): Int = pieceSize
 
-    fun movePiece(pieceId: Int, newX: Float, newY: Float) {
-        val piece = pieces.find { it.id == pieceId } ?: return
-        if (!piece.isLocked) {
-            piece.currentX = newX
-            piece.currentY = newY
+    fun getBoardSize(): Int = boardSize
+
+    fun getGridSize(): Int = gridSize
+
+    fun getMoveCount(): Int = moveCount
+
+    fun getLockedCount(): Int = gameState.lockedCount
+
+    fun getTotalPieces(): Int = gameState.totalPieces
+
+    fun isWon(): Boolean = gameState.isWon
+
+    /**
+     * Place a piece at a target grid position (swap with target)
+     * If piece lands in its correct position, lock it
+     */
+    fun placePiece(fromRow: Int, fromCol: Int, toRow: Int, toCol: Int) {
+        // Validate positions
+        if (!isValidPosition(fromRow, fromCol) || !isValidPosition(toRow, toCol)) {
+            return
         }
-    }
-
-    fun checkAndLockPiece(pieceId: Int): Boolean {
-        val piece = pieces.find { it.id == pieceId } ?: return false
-        if (piece.isLocked) return false
-
-        if (isNearCorrectPosition(piece)) {
-            piece.isLocked = true
-            snapToCorrectPosition(piece)
-            return true
+        
+        // Cannot move locked pieces
+        if (gameState.grid[fromRow][fromCol].isLocked) {
+            return
+        }
+        
+        // Cannot drop on locked pieces
+        if (gameState.grid[toRow][toCol].isLocked) {
+            return
+        }
+        
+        val piece = gameState.grid[fromRow][fromCol]
+        
+        // Check if piece is being dropped on its correct position
+        val isCorrectPosition = piece.correctRow == toRow && piece.correctCol == toCol
+        
+        if (isCorrectPosition) {
+            // Swap pieces
+            gameState.grid[fromRow][fromCol] = gameState.grid[toRow][toCol]
+            // Place piece in correct position and lock it
+            gameState.grid[toRow][toCol] = piece.copy(isLocked = true)
         } else {
-            // Snap back to starting position if dropped in wrong spot
-            snapBackToStartingPosition(piece)
+            // Swap pieces
+            val temp = gameState.grid[fromRow][fromCol]
+            gameState.grid[fromRow][fromCol] = gameState.grid[toRow][toCol]
+            gameState.grid[toRow][toCol] = temp
         }
-        return false
-    }
-
-    private fun isNearCorrectPosition(piece: PuzzlePiece): Boolean {
-        val correctX = boardOffsetX + piece.gridX * pieceSize
-        val correctY = boardOffsetY + piece.gridY * pieceSize
-
-        val distX = abs(piece.currentX - correctX)
-        val distY = abs(piece.currentY - correctY)
-
-        return distX < snapThreshold && distY < snapThreshold
-    }
-
-    private fun snapToCorrectPosition(piece: PuzzlePiece) {
-        piece.currentX = boardOffsetX + (piece.gridX * pieceSize).toFloat()
-        piece.currentY = boardOffsetY + (piece.gridY * pieceSize).toFloat()
-    }
-
-    private fun snapBackToStartingPosition(piece: PuzzlePiece) {
-        val startPos = startingPositions[piece.id]
-        if (startPos != null) {
-            piece.currentX = startPos.first
-            piece.currentY = startPos.second
+        
+        // Check and lock all correctly placed pieces
+        var lockedCount = 0
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
+                val p = gameState.grid[r][c]
+                if (p.correctRow == r && p.correctCol == c) {
+                    p.isLocked = true
+                }
+                if (p.isLocked) {
+                    lockedCount++
+                }
+            }
         }
+        
+        gameState.lockedCount = lockedCount
+        gameState.isWon = lockedCount == gameState.totalPieces
+        moveCount++
     }
 
-    fun isLevelComplete(): Boolean {
-        return pieces.all { it.isLocked }
-    }
-
-    fun getLockedPiecesCount(): Int {
-        return pieces.count { it.isLocked }
-    }
-
-    fun getTotalPieces(): Int {
-        return pieces.size
+    private fun isValidPosition(row: Int, col: Int): Boolean {
+        return row >= 0 && row < gridSize && col >= 0 && col < gridSize
     }
 
     fun resetLevel() {
-        initializePuzzle()
+        gameState = initializeGame()
+        moveCount = 0
     }
 
     fun cleanup() {
