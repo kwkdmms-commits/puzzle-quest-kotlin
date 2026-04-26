@@ -1,5 +1,6 @@
 package com.pingsama.puzzlequest.ui
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +55,8 @@ import com.pingsama.puzzlequest.ui.theme.TextDark
 import com.pingsama.puzzlequest.ui.theme.TextMuted
 import com.pingsama.puzzlequest.ui.theme.YellowWarm
 import kotlinx.coroutines.delay
+
+private const val TAG = "GameScreen"
 
 /**
  * Active gameplay screen — port of `client/src/pages/GameScreenV2.tsx`.
@@ -90,6 +94,7 @@ fun GameScreen(
     var timeRemaining by remember(currentLevel) { mutableIntStateOf(timeLimit) }
     var moreTimeUsed by remember(currentLevel) { mutableStateOf(false) }
     var showHint by remember { mutableStateOf(false) }
+    var hintError by remember { mutableStateOf<String?>(null) }
     var showWin by remember(currentLevel) { mutableStateOf(false) }
     var showLose by remember(currentLevel) { mutableStateOf(false) }
     var showRestartConfirm by remember { mutableStateOf(false) }
@@ -98,105 +103,143 @@ fun GameScreen(
     LaunchedEffect(currentLevel) { leaderboard.saveCurrentLevel(currentLevel) }
 
     // Countdown timer — runs only when no popup is showing.
-    LaunchedEffect(currentLevel, showWin, showLose) {
-        if (showWin || showLose) return@LaunchedEffect
-        while (timeRemaining > 0) {
-            delay(1000L)
-            timeRemaining -= 1
+    LaunchedEffect(showWin, showLose) {
+        while (!showWin && !showLose && timeRemaining > 0) {
+            delay(1000)
+            timeRemaining--
+            if (timeRemaining == 0) showLose = true
         }
-        if (timeRemaining <= 0) showLose = true
     }
 
-    // Helper: hard-reset the current level (used by Restart and the lose popup).
     fun resetLevel() {
         gameState = GameEngine.initialize("level-$currentLevel", levelConfig.gridSize)
         moveCount = 0
         timeRemaining = timeLimit
         moreTimeUsed = false
-        showHint = false
         showWin = false
         showLose = false
+        showHint = false
+        hintError = null
+    }
+
+    fun handleHintClick() {
+        try {
+            Log.d(TAG, "HINT_CLICKED")
+            audio.playHint()
+            
+            if (levelImage == null) {
+                Log.w(TAG, "HINT_FAILED: levelImage is null (still loading)")
+                hintError = "Hint image is still loading. Please try again."
+                return
+            }
+            
+            if (levelImage.source == null) {
+                Log.w(TAG, "HINT_FAILED: levelImage.source is null")
+                hintError = "Hint image failed to load."
+                return
+            }
+            
+            Log.d(TAG, "HINT_IMAGE_LOADED")
+            Log.d(TAG, "HINT_DIALOG_OPEN")
+            showHint = true
+            hintError = null
+        } catch (e: Exception) {
+            Log.e(TAG, "HINT_FAILED: ${e.javaClass.simpleName}: ${e.message}", e)
+            hintError = "Hint unavailable: ${e.message ?: "Unknown error"}"
+            showHint = false
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.systemBars)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF0F8FF), Color(0xFFE6F2FF))
+                )
+            )
+            .windowInsetsPadding(WindowInsets.systemBars),
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // ----- 1. Header -----
+            // ----- 1. Header row -----
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = "Level $currentLevel",
                     style = TextStyle(
                         fontFamily = DisplayFamily,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                        brush = Brush.horizontalGradient(listOf(Coral, Teal)),
+                        fontSize = 28.sp,
+                        color = Coral,
                     ),
                 )
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "Moves: $moveCount",
-                        color = Coral,
-                        fontFamily = DisplayFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
+                        style = TextStyle(
+                            fontFamily = DisplayFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Coral,
+                        ),
                     )
                     Text(
                         text = formatTime(timeRemaining),
-                        color = Teal,
-                        fontFamily = BodyFamily,
-                        fontSize = 13.sp,
+                        style = TextStyle(
+                            fontFamily = BodyFamily,
+                            fontSize = 14.sp,
+                            color = Teal,
+                        ),
                     )
                 }
             }
 
             // ----- 2. Flex spacer (top) -----
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.weight(0.3f))
 
             // ----- 3. Pieces counter -----
             Text(
-                text = "${gameState.lockedCount} / ${gameState.totalPieces} Pieces Placed",
-                color = Teal,
-                fontFamily = DisplayFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+                text = "${gameState.placedCount} / ${gameState.totalPieces} Pieces Placed",
+                style = TextStyle(
+                    fontFamily = DisplayFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Teal,
+                ),
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // ----- 4. Puzzle board (centered) -----
-            PuzzleBoard(
-                gameState = gameState,
-                pieceBitmaps = levelImage?.pieces,
-                onMove = { newState ->
-                    gameState = newState
-                    moveCount += 1
-                },
-                onLockSound = { audio.playSnap() },
-                onSwapSound = { audio.playSwap() },
-                onWin = {
-                    audio.playWin()
-                    val timeUsed = timeLimit - timeRemaining
-                    leaderboard.saveScore(levelConfig.gridSize, moveCount, timeUsed)
-                    leaderboard.savePuzzlesCompleted(leaderboard.puzzlesCompleted() + 1)
-                    showWin = true
-                },
+            // ----- 4. Puzzle board -----
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f),
-            )
+                    .aspectRatio(1f)
+                    .padding(horizontal = 8.dp),
+            ) {
+                PuzzleBoard(
+                    gameState = gameState,
+                    levelImage = levelImage,
+                    onMove = { moveCount++ },
+                    onLockSound = { audio.playSnap() },
+                    onSwapSound = { audio.playSwap() },
+                    onWin = { showWin = true },
+                )
+            }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
+
+            // ----- 5. Instructions -----
             Text(
                 text = "\uD83C\uDFAF  Drag pieces. Drop on correct spot to lock.",
                 color = TextMuted,
@@ -207,7 +250,7 @@ fun GameScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // ----- 5. Button row (directly under puzzle) -----
+            // ----- 6. Button row (directly under puzzle) -----
             // Order: Home - Restart - Hint - More Time
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -238,7 +281,7 @@ fun GameScreen(
                     icon = "\uD83D\uDCA1", // 💡
                     gradient = listOf(YellowWarm, OrangeWarm),
                     textColor = TextDark,
-                    onClick = { audio.playHint(); showHint = true },
+                    onClick = { handleHintClick() },
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
@@ -248,25 +291,27 @@ fun GameScreen(
                     icon = "\u23F1", // ⏱
                     gradient = if (moreTimeUsed)
                         listOf(Color(0xFFEDEDED), Color(0xFFEDEDED))
-                    else listOf(OrangeWarm, Coral),
-                    textColor = TextDark,
+                    else
+                        listOf(Coral, CoralLight),
+                    textColor = if (moreTimeUsed) TextMuted else Color.White,
                     onClick = {
                         if (!moreTimeUsed) {
-                            timeRemaining = (timeRemaining + 60).coerceAtMost(timeLimit + 300)
+                            timeRemaining = 60
                             moreTimeUsed = true
+                            showLose = false
                         }
                     },
-                    enabled = !moreTimeUsed,
                     modifier = Modifier.weight(1f),
                     height = 64,
-                    fontSize = 11,
+                    fontSize = 13,
+                    enabled = !moreTimeUsed,
                 )
             }
 
-            // ----- 6. Flex spacer (middle) -----
+            // ----- 7. Flex spacer (middle) -----
             Spacer(Modifier.weight(1f))
 
-            // ----- 7. Ad banner space (fixed height) -----
+            // ----- 8. Ad banner space (fixed height) -----
             Spacer(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -276,45 +321,25 @@ fun GameScreen(
         }
 
         // ----- Overlays -----
-        if (showHint) {
-            if (levelImage != null) {
-                // Image loaded: show hint overlay
-                HintOverlay(image = levelImage.source, onClose = { showHint = false })
-            } else {
-                // Image still loading: show loading message
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0x80000000))
-                        .clickable(onClick = { showHint = false }),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .background(Color.White, RoundedCornerShape(20.dp))
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "Loading hint...",
-                            fontFamily = DisplayFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = Teal,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        PillButton(
-                            label = "Close",
-                            icon = "✕",
-                            gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
-                            textColor = TextDark,
-                            onClick = { showHint = false },
-                            height = 48,
-                            fontSize = 14,
-                        )
-                    }
-                }
-            }
+        if (showHint && levelImage != null) {
+            HintOverlay(image = levelImage.source, onClose = { showHint = false })
+        }
+
+        if (hintError != null) {
+            AlertDialog(
+                onDismissRequest = { hintError = null },
+                title = { Text("Hint Unavailable") },
+                text = { Text(hintError ?: "Unknown error") },
+                confirmButton = {
+                    PillButton(
+                        label = "OK",
+                        gradient = listOf(Coral, CoralLight),
+                        onClick = { hintError = null },
+                        height = 40,
+                        fontSize = 12,
+                    )
+                },
+            )
         }
 
         if (showWin) {
@@ -399,7 +424,9 @@ private fun WinPopup(
     onMenu: () -> Unit,
 ) {
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0x80000000)),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x80000000)),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -414,9 +441,9 @@ private fun WinPopup(
                 fontFamily = DisplayFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
-                color = Coral,
+                color = Teal,
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
             if (completedImage != null) {
                 Image(
@@ -425,9 +452,9 @@ private fun WinPopup(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(200.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .clip(RoundedCornerShape(16.dp)),
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
             }
 
             Text(
@@ -452,43 +479,42 @@ private fun WinPopup(
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 PillButton(
                     label = "Retry",
-                    icon = "\uD83D\uDD04",
                     gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
                     textColor = TextDark,
                     onClick = onRetry,
                     modifier = Modifier.weight(1f),
                     height = 48,
-                    fontSize = 12,
+                    fontSize = 14,
                 )
                 PillButton(
                     label = "Next",
-                    icon = "\u27A1",
-                    gradient = listOf(Teal, Color(0xFF2BA89F)),
-                    textColor = Color.White,
+                    gradient = listOf(Teal, Color(0xFF20B2AA)),
                     onClick = onNext,
                     modifier = Modifier.weight(1f),
                     height = 48,
-                    fontSize = 12,
-                )
-                PillButton(
-                    label = "Menu",
-                    icon = "\uD83C\uDFE0",
-                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
-                    textColor = TextDark,
-                    onClick = onMenu,
-                    modifier = Modifier.weight(1f),
-                    height = 48,
-                    fontSize = 12,
+                    fontSize = 14,
                 )
             }
+
+            Spacer(Modifier.height(8.dp))
+
+            PillButton(
+                label = "Menu",
+                gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                textColor = TextDark,
+                onClick = onMenu,
+                modifier = Modifier.fillMaxWidth(),
+                height = 48,
+                fontSize = 14,
+            )
         }
     }
 }
@@ -500,14 +526,16 @@ private fun LosePopup(
     moreTimeAvailable: Boolean,
 ) {
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0x80000000)),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x80000000)),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             modifier = Modifier
                 .background(Color.White, RoundedCornerShape(24.dp))
                 .padding(24.dp)
-                .fillMaxWidth(0.85f),
+                .fillMaxWidth(0.9f),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -527,31 +555,27 @@ private fun LosePopup(
             )
             Spacer(Modifier.height(20.dp))
 
-            Row(
+            PillButton(
+                label = "Restart",
+                icon = "🔄",
+                gradient = listOf(Coral, CoralLight),
+                onClick = onRestart,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+                height = 48,
+                fontSize = 14,
+            )
+
+            if (moreTimeAvailable) {
+                Spacer(Modifier.height(8.dp))
                 PillButton(
-                    label = "Restart",
-                    icon = "\uD83D\uDD04",
-                    gradient = listOf(Coral, CoralLight),
-                    onClick = onRestart,
-                    modifier = Modifier.weight(1f),
+                    label = "More Time",
+                    icon = "⏱",
+                    gradient = listOf(OrangeWarm, Color(0xFFFF9500)),
+                    onClick = onMoreTime,
+                    modifier = Modifier.fillMaxWidth(),
                     height = 48,
-                    fontSize = 12,
+                    fontSize = 14,
                 )
-                if (moreTimeAvailable) {
-                    PillButton(
-                        label = "+60s",
-                        icon = "\u23F1",
-                        gradient = listOf(OrangeWarm, Coral),
-                        textColor = Color.White,
-                        onClick = onMoreTime,
-                        modifier = Modifier.weight(1f),
-                        height = 48,
-                        fontSize = 12,
-                    )
-                }
             }
         }
     }
