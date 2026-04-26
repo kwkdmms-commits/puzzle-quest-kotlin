@@ -103,13 +103,13 @@ class GameplayFragment : Fragment() {
         // Update pieces count
         tvPieces.text = getString(
             R.string.pieces_placed,
-            gameEngine.getLockedPiecesCount(),
+            gameEngine.getLockedCount(),
             gameEngine.getTotalPieces()
         )
     }
 
     private fun checkLevelComplete() {
-        if (gameEngine.isLevelComplete()) {
+        if (gameEngine.isWon()) {
             isGameActive = false
             stopTimer()
             showWinScreen()
