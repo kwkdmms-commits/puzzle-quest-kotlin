@@ -1,9 +1,6 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Top-level build file.
+// Compose compiler is configured via composeOptions in app/build.gradle.kts (Kotlin 1.9.x style).
 plugins {
-    id("com.android.application") version "8.1.0" apply false
-    id("org.jetbrains.kotlin.android") version "1.9.0" apply false
-}
-
-tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
+    id("com.android.application") version "8.5.2" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
 }

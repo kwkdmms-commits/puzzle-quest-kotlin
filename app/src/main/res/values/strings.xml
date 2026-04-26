@@ -1,22 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Puzzle Quest</string>
-    <string name="play">Play - Level %d</string>
-    <string name="remove_ads">Remove Ads</string>
+    <string name="tagline">Match the pieces. Complete the puzzle.</string>
+    <string name="play_level">▶  Play - Level %1$d</string>
     <string name="quit">Quit</string>
-    <string name="level">Level %d</string>
-    <string name="moves">Moves: %d</string>
-    <string name="timer">%02d:%02d</string>
-    <string name="pieces_placed">%d / %d Pieces Placed</string>
-    <string name="home">🏠</string>
-    <string name="restart">🔄</string>
-    <string name="more_time">⏱️ More Time</string>
-    <string name="hint">💡 Hint</string>
+    <string name="footer">25 levels of puzzle fun</string>
+    <string name="level_label">Level %1$d</string>
+    <string name="moves_label">Moves: %1$d</string>
+    <string name="pieces_placed">%1$d / %2$d Pieces Placed</string>
+    <string name="drag_hint">🎯  Drag pieces. Drop on correct spot to lock.</string>
+    <string name="hint">Hint</string>
+    <string name="restart">Restart</string>
+    <string name="home">Home</string>
+    <string name="more_time">More Time</string>
+    <string name="puzzle_complete">Puzzle Complete!</string>
     <string name="next_level">Next Level</string>
-    <string name="restart_level">Restart Level</string>
-    <string name="yes">Yes</string>
-    <string name="no">No</string>
-    <string name="restart_confirmation">Restart Level?</string>
-    <string name="close">✕</string>
-    <string name="drag_instruction">Drag pieces. Drop on correct spot to lock.</string>
+    <string name="retry_level">Retry Level</string>
+    <string name="back_to_menu">Back to Menu</string>
+    <string name="you_lost">You Lost</string>
+    <string name="time_up_msg">Time\'s up! You didn\'t complete the puzzle in time.</string>
+    <string name="restart_level_q">Restart Level?</string>
+    <string name="restart_level_msg">Your progress on this level will be reset.</string>
+    <string name="yes_restart">Yes, Restart</string>
+    <string name="no_cancel">No, Cancel</string>
+    <string name="provider_authority" translatable="false">com.google.android.gms.fonts</string>
+    <string name="provider_package" translatable="false">com.google.android.gms</string>
 </resources>

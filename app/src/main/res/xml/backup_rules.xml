@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <include domain="sharedpref" path="." />
-    <include domain="database" path="." />
-    <include domain="file" path="." />
+    <include domain="sharedpref" path="puzzle_quest_prefs.xml"/>
 </full-backup-content>
