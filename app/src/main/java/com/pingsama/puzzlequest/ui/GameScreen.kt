@@ -59,10 +59,13 @@ import kotlinx.coroutines.delay
  *
  * Layout (top → bottom):
  *  1. Header row — "Level N" on the left, "Moves" + countdown on the right
- *  2. Pieces-placed counter
- *  3. The puzzle board (grows to fill available square space)
- *  4. Drag instructions
- *  5. Pill button row: Hint • Restart • Home • More Time
+ *  2. Flex spacer (top)
+ *  3. Pieces-placed counter
+ *  4. The puzzle board (centered)
+ *  5. Drag instructions
+ *  6. Button row: Home • Restart • Hint • More Time (directly under puzzle)
+ *  7. Flex spacer (middle)
+ *  8. Ad banner space (fixed 60dp)
  *
  * Overlays: hint preview, win popup, lose popup, restart confirmation.
  */
@@ -157,9 +160,10 @@ fun GameScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            // ----- 2. Flex spacer (top) -----
+            Spacer(Modifier.weight(1f))
 
-            // ----- 2. Pieces counter -----
+            // ----- 3. Pieces counter -----
             Text(
                 text = "${gameState.lockedCount} / ${gameState.totalPieces} Pieces Placed",
                 color = Teal,
@@ -170,7 +174,7 @@ fun GameScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ----- 3. Puzzle board (fills the available square) -----
+            // ----- 4. Puzzle board (centered) -----
             PuzzleBoard(
                 gameState = gameState,
                 pieceBitmaps = levelImage?.pieces,
@@ -201,21 +205,21 @@ fun GameScreen(
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(8.dp))
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(12.dp))
 
-            // ----- 5. Bottom button row -----
+            // ----- 5. Button row (directly under puzzle) -----
+            // Order: Home - Restart - Hint - More Time
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PillButton(
-                    label = "Hint",
-                    icon = "\uD83D\uDCA1", // 💡
-                    gradient = listOf(YellowWarm, OrangeWarm),
+                    label = "Home",
+                    icon = "\uD83C\uDFE0", // 🏠
+                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
                     textColor = TextDark,
-                    onClick = { audio.playHint(); showHint = true },
+                    onClick = onBackToMenu,
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
@@ -230,11 +234,11 @@ fun GameScreen(
                     fontSize = 13,
                 )
                 PillButton(
-                    label = "Home",
-                    icon = "\uD83C\uDFE0", // 🏠
-                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                    label = "Hint",
+                    icon = "\uD83D\uDCA1", // 💡
+                    gradient = listOf(YellowWarm, OrangeWarm),
                     textColor = TextDark,
-                    onClick = onBackToMenu,
+                    onClick = { audio.playHint(); showHint = true },
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
@@ -258,6 +262,17 @@ fun GameScreen(
                     fontSize = 11,
                 )
             }
+
+            // ----- 6. Flex spacer (middle) -----
+            Spacer(Modifier.weight(1f))
+
+            // ----- 7. Ad banner space (fixed height) -----
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .background(Color.Transparent)
+            )
         }
 
         // ----- Overlays -----
@@ -350,107 +365,91 @@ private fun WinPopup(
         modifier = Modifier.fillMaxSize().background(Color(0x80000000)),
         contentAlignment = Alignment.Center,
     ) {
-        PopupCard(modifier = Modifier.fillMaxWidth(0.9f)) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("\uD83C\uDF89", fontSize = 44.sp) // 🎉
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "Puzzle Complete!",
-                    style = TextStyle(
-                        fontFamily = DisplayFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 26.sp,
-                        brush = Brush.horizontalGradient(listOf(Coral, Teal)),
-                        textAlign = TextAlign.Center,
-                    ),
+        Column(
+            modifier = Modifier
+                .background(Color.White, RoundedCornerShape(24.dp))
+                .padding(24.dp)
+                .fillMaxWidth(0.9f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "🎉 Level Complete!",
+                fontFamily = DisplayFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+                color = Coral,
+            )
+            Spacer(Modifier.height(12.dp))
+
+            if (completedImage != null) {
+                Image(
+                    bitmap = completedImage,
+                    contentDescription = "Completed puzzle",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(RoundedCornerShape(12.dp)),
                 )
                 Spacer(Modifier.height(12.dp))
+            }
 
-                if (completedImage != null) {
-                    Image(
-                        bitmap = completedImage,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(16.dp)),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                }
+            Text(
+                text = "Moves: $moves",
+                fontFamily = BodyFamily,
+                fontSize = 14.sp,
+                color = TextDark,
+            )
+            Text(
+                text = "Time: ${formatTime(timeUsed)}",
+                fontFamily = BodyFamily,
+                fontSize = 14.sp,
+                color = TextDark,
+            )
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFF1F7FF))
-                        .padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = "Moves: $moves",
-                        color = Coral,
-                        fontFamily = DisplayFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    )
-                    Text(
-                        text = "Time: ${formatTime(timeUsed)}",
-                        color = Teal,
-                        fontFamily = DisplayFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    )
-                    if (bestMoves != null && bestTimeUsed != null) {
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = "Best: $bestMoves moves in ${formatTime(bestTimeUsed)}",
-                            color = TextMuted,
-                            fontFamily = BodyFamily,
-                            fontSize = 11.sp,
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
+            if (bestMoves != null) {
                 Text(
-                    text = "Great job! You've completed $puzzlesCompleted puzzle" +
-                            if (puzzlesCompleted == 1) "!" else "s!",
-                    color = TextMuted,
+                    text = "Best Moves: $bestMoves",
                     fontFamily = BodyFamily,
                     fontSize = 12.sp,
-                    textAlign = TextAlign.Center,
+                    color = TextMuted,
                 )
-                Spacer(Modifier.height(14.dp))
+            }
 
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 PillButton(
-                    label = "Next Level",
-                    icon = "\u27A1", // ➡
-                    gradient = listOf(Teal, Color(0xFF44B8B0)),
-                    onClick = onNext,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 52,
-                    fontSize = 14,
-                )
-                Spacer(Modifier.height(8.dp))
-                PillButton(
-                    label = "Retry Level",
-                    icon = "\uD83D\uDD04", // 🔄
-                    gradient = listOf(Coral, CoralLight),
+                    label = "Retry",
+                    icon = "\uD83D\uDD04",
+                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                    textColor = TextDark,
                     onClick = onRetry,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 52,
-                    fontSize = 14,
+                    modifier = Modifier.weight(1f),
+                    height = 48,
+                    fontSize = 12,
                 )
-                Spacer(Modifier.height(8.dp))
                 PillButton(
-                    label = "Back to Menu",
+                    label = "Next",
+                    icon = "\u27A1",
+                    gradient = listOf(Teal, Color(0xFF2BA89F)),
+                    textColor = Color.White,
+                    onClick = onNext,
+                    modifier = Modifier.weight(1f),
+                    height = 48,
+                    fontSize = 12,
+                )
+                PillButton(
+                    label = "Menu",
+                    icon = "\uD83C\uDFE0",
                     gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
                     textColor = TextDark,
                     onClick = onMenu,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 52,
-                    fontSize = 14,
+                    modifier = Modifier.weight(1f),
+                    height = 48,
+                    fontSize = 12,
                 )
             }
         }
@@ -467,103 +466,55 @@ private fun LosePopup(
         modifier = Modifier.fillMaxSize().background(Color(0x80000000)),
         contentAlignment = Alignment.Center,
     ) {
-        PopupCard(modifier = Modifier.fillMaxWidth(0.85f)) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("\uD83D\uDE22", fontSize = 44.sp) // 😢
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "You Lost",
-                    style = TextStyle(
-                        fontFamily = DisplayFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 26.sp,
-                        brush = Brush.horizontalGradient(listOf(Coral, CoralLight)),
-                    ),
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Time's up! You didn't complete the puzzle in time.",
-                    color = TextMuted,
-                    fontFamily = BodyFamily,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(16.dp))
+        Column(
+            modifier = Modifier
+                .background(Color.White, RoundedCornerShape(24.dp))
+                .padding(24.dp)
+                .fillMaxWidth(0.85f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "⏰ Time's Up!",
+                fontFamily = DisplayFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+                color = Coral,
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = "You ran out of time. Try again!",
+                fontFamily = BodyFamily,
+                fontSize = 14.sp,
+                color = TextDark,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(20.dp))
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 PillButton(
-                    label = "Restart Level",
+                    label = "Restart",
                     icon = "\uD83D\uDD04",
                     gradient = listOf(Coral, CoralLight),
                     onClick = onRestart,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 52,
-                    fontSize = 14,
+                    modifier = Modifier.weight(1f),
+                    height = 48,
+                    fontSize = 12,
                 )
                 if (moreTimeAvailable) {
-                    Spacer(Modifier.height(8.dp))
                     PillButton(
-                        label = "More Time",
+                        label = "+60s",
                         icon = "\u23F1",
-                        gradient = listOf(YellowWarm, OrangeWarm),
-                        textColor = TextDark,
+                        gradient = listOf(OrangeWarm, Coral),
+                        textColor = Color.White,
                         onClick = onMoreTime,
-                        modifier = Modifier.fillMaxWidth(),
-                        height = 52,
-                        fontSize = 14,
+                        modifier = Modifier.weight(1f),
+                        height = 48,
+                        fontSize = 12,
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RestartConfirmDialog(
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    Box(
-        modifier = Modifier.fillMaxSize().background(Color(0x80000000)),
-        contentAlignment = Alignment.Center,
-    ) {
-        PopupCard(modifier = Modifier.fillMaxWidth(0.85f)) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("\uD83D\uDD04", fontSize = 36.sp) // 🔄
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Restart Level?",
-                    color = TextDark,
-                    fontFamily = DisplayFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Your progress on this level will be reset.",
-                    color = TextMuted,
-                    fontFamily = BodyFamily,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(16.dp))
-                PillButton(
-                    label = "Yes, Restart",
-                    gradient = listOf(Coral, CoralLight),
-                    onClick = onConfirm,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 50,
-                    fontSize = 14,
-                )
-                Spacer(Modifier.height(8.dp))
-                PillButton(
-                    label = "No, Cancel",
-                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
-                    textColor = TextDark,
-                    onClick = onCancel,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 50,
-                    fontSize = 14,
-                )
             }
         }
     }
