@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Original web palette: --primary (#4ECDC4 teal), --accent (#FF6B6B coral),
-         --secondary (#FFE66D yellow), --chart-4 (#95E1D3 mint), bg gradient blue50→pink50 -->
+    <!-- Original web palette: primary (#4ECDC4 teal), accent (#FF6B6B coral),
+         secondary (#FFE66D yellow), chart-4 (#95E1D3 mint), bg gradient blue50 to pink50 -->
     <color name="coral">#FF6B6B</color>
     <color name="coral_light">#FF8E8E</color>
     <color name="teal">#4ECDC4</color>
