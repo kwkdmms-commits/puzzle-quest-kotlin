@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -16,11 +15,7 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
     private var onStateChange: (() -> Unit)? = null
     
     private var draggedCell: Pair<Int, Int>? = null
-    private var dragOffsetX = 0f
-    private var dragOffsetY = 0f
     private var boardInitialized = false
-    private var boardX = 0f
-    private var boardY = 0f
 
     private val gridPaint = Paint().apply {
         isAntiAlias = true
@@ -61,12 +56,6 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
         
         if (!boardInitialized && gameEngine != null) {
             gameEngine?.setBoardDimensions(w, h)
-            
-            val boardSize = gameEngine?.getBoardSize() ?: return
-            // Center the board
-            boardX = (w - boardSize) / 2f
-            boardY = (h - boardSize) / 2f
-            
             boardInitialized = true
             invalidate()
         }
@@ -79,19 +68,20 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
             val pieceManager = engine.getPieceManager()
             val pieceSize = engine.getPieceSize()
             val gridSize = engine.getGridSize()
+            val boardSize = engine.getBoardSize()
             val gameState = engine.getGameState()
 
-            // Draw grid background
-            canvas.drawRect(boardX, boardY, boardX + pieceSize * gridSize, boardY + pieceSize * gridSize, Paint().apply {
+            // Draw board background
+            canvas.drawRect(0f, 0f, boardSize.toFloat(), boardSize.toFloat(), Paint().apply {
                 color = Color.parseColor("#95E1D3")
                 style = Paint.Style.FILL
             })
 
             // Draw grid lines
             for (i in 0..gridSize) {
-                val pos = boardX + i * pieceSize
-                canvas.drawLine(pos, boardY, pos, boardY + pieceSize * gridSize, gridPaint)
-                canvas.drawLine(boardX, boardY + i * pieceSize, boardX + pieceSize * gridSize, boardY + i * pieceSize, gridPaint)
+                val pos = i * pieceSize
+                canvas.drawLine(pos.toFloat(), 0f, pos.toFloat(), boardSize.toFloat(), gridPaint)
+                canvas.drawLine(0f, pos.toFloat(), boardSize.toFloat(), pos.toFloat(), gridPaint)
             }
 
             // Draw pieces (unlocked first, then locked on top)
@@ -126,18 +116,18 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
         val bitmap = pieceManager.getPieceBitmap(piece.id)
         
         if (bitmap != null) {
-            val x = boardX + displayCol * pieceSize
-            val y = boardY + displayRow * pieceSize
+            val x = displayCol * pieceSize
+            val y = displayRow * pieceSize
             
-            // Draw the bitmap piece
-            canvas.drawBitmap(bitmap, x, y, null)
+            // Draw the bitmap piece scaled to exact piece size
+            canvas.drawBitmap(bitmap, null, android.graphics.Rect(x, y, x + pieceSize, y + pieceSize), null)
         }
 
         // Draw border
-        val x = boardX + displayCol * pieceSize
-        val y = boardY + displayRow * pieceSize
+        val x = displayCol * pieceSize
+        val y = displayRow * pieceSize
         val border = if (piece.isLocked) lockedBorderPaint else normalBorderPaint
-        canvas.drawRect(x, y, x + pieceSize, y + pieceSize, border)
+        canvas.drawRect(x.toFloat(), y.toFloat(), (x + pieceSize).toFloat(), (y + pieceSize).toFloat(), border)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -148,15 +138,13 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                val col = ((event.x - boardX) / pieceSize).toInt()
-                val row = ((event.y - boardY) / pieceSize).toInt()
+                val col = (event.x / pieceSize).toInt()
+                val row = (event.y / pieceSize).toInt()
                 
                 if (row in 0 until gridSize && col in 0 until gridSize) {
                     val piece = gameEngine?.getGameState()?.grid?.get(row)?.get(col)
                     if (piece != null && !piece.isLocked) {
                         draggedCell = Pair(row, col)
-                        dragOffsetX = event.x - (boardX + col * pieceSize)
-                        dragOffsetY = event.y - (boardY + row * pieceSize)
                         invalidate()
                         return true
                     }
@@ -172,8 +160,8 @@ class PuzzleBoardView(context: Context, attrs: AttributeSet? = null) : View(cont
 
             MotionEvent.ACTION_UP -> {
                 if (draggedCell != null) {
-                    val toCol = ((event.x - boardX) / pieceSize).toInt()
-                    val toRow = ((event.y - boardY) / pieceSize).toInt()
+                    val toCol = (event.x / pieceSize).toInt()
+                    val toRow = (event.y / pieceSize).toInt()
                     
                     if (toRow in 0 until gridSize && toCol in 0 until gridSize) {
                         val (fromRow, fromCol) = draggedCell!!

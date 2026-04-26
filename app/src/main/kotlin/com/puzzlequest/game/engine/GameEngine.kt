@@ -55,10 +55,10 @@ class GameEngine(context: Context, private val level: Level) {
     }
 
     fun setBoardDimensions(screenWidth: Int, screenHeight: Int) {
-        // Match React logic: maxBoardSize = min(screenWidth - 32, screenHeight * 0.5)
-        val maxBoardSize = minOf(screenWidth - 32, (screenHeight * 0.5).toInt())
-        this.pieceSize = floor(maxBoardSize.toFloat() / gridSize).toInt()
-        this.boardSize = pieceSize * gridSize
+        // Make board ~90% of screen width for 4x4, scale down for 6x6
+        val targetBoardSize = (screenWidth * 0.9).toInt()
+        this.boardSize = targetBoardSize
+        this.pieceSize = boardSize / gridSize
     }
 
     private fun initializeGame(): GameState {
