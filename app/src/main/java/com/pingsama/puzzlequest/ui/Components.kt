@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -143,4 +146,73 @@ fun ActionRow(content: @Composable () -> Unit) {
         modifier = Modifier,
         content = { content() }
     )
+}
+
+/**
+ * Restart confirmation dialog.
+ * Shows a confirmation popup asking the user if they want to restart the current level.
+ */
+@Composable
+fun RestartConfirmDialog(
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x80000000))
+            .clickable(onClick = onCancel),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .background(Color.White, RoundedCornerShape(24.dp))
+                .padding(24.dp)
+                .fillMaxWidth(0.85f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "Restart Level?",
+                fontFamily = DisplayFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = Color(0xFF2C3E50),
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "Your progress will be reset.",
+                fontFamily = DisplayFamily,
+                fontSize = 14.sp,
+                color = Color(0xFF999999),
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                PillButton(
+                    label = "No",
+                    icon = "✕",
+                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                    textColor = Color(0xFF2C3E50),
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f),
+                    height = 48,
+                    fontSize = 14,
+                )
+                PillButton(
+                    label = "Yes",
+                    icon = "🔄",
+                    gradient = listOf(Color(0xFFFF6B6B), Color(0xFFFF8E8E)),
+                    textColor = Color.White,
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(1f),
+                    height = 48,
+                    fontSize = 14,
+                )
+            }
+        }
+    }
 }
