@@ -1,19 +1,13 @@
-name: Build and Release APK
+name: Build APK
 
 on:
   push:
-    branches: [ main, develop ]
-  pull_request:
     branches: [ main, develop ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
-    permissions:
-      contents: write
-      packages: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,84 +25,9 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
-        continue-on-error: true
-
-      - name: Run Unit Tests
-        run: ./gradlew test
-        continue-on-error: true
-
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: puzzle-quest-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: puzzle-quest-release
-          path: app/build/outputs/apk/release/app-release.apk
-          retention-days: 30
-        continue-on-error: true
-
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: app/build/reports/tests/
-          retention-days: 7
-        continue-on-error: true
-
-      - name: Create Release on Tag
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            # PuzzleQuest Release
-            
-            **Debug APK**: Available in artifacts
-            **Release APK**: Available in artifacts
-            
-            ## Build Information
-            - Commit: ${{ github.sha }}
-            - Branch: ${{ github.ref }}
-            - Date: ${{ github.event.head_commit.timestamp }}
-          draft: false
-          prerelease: false
-
-      - name: Upload APK to Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/app-release.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
-      - name: Build Summary
-        if: always()
-        run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- Debug APK: ✅ Built" >> $GITHUB_STEP_SUMMARY
-          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            echo "- Release APK: ✅ Built" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- Release APK: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
-          fi
