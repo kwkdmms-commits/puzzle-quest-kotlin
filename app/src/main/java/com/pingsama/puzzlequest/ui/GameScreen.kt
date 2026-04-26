@@ -276,8 +276,86 @@ fun GameScreen(
         }
 
         // ----- Overlays -----
-        if (showHint && levelImage != null) {
-            HintOverlay(image = levelImage.source, onClose = { showHint = false })
+        if (showHint) {
+            if (levelImage != null) {
+                try {
+                    HintOverlay(image = levelImage.source, onClose = { showHint = false })
+                } catch (e: Exception) {
+                    // Fallback: show error message instead of crashing
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0x80000000))
+                            .clickable(onClick = { showHint = false }),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .background(Color.White, RoundedCornerShape(20.dp))
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = "Hint",
+                                fontFamily = DisplayFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = Coral,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = "Unable to load hint image",
+                                fontFamily = BodyFamily,
+                                fontSize = 14.sp,
+                                color = TextDark,
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            PillButton(
+                                label = "Close",
+                                icon = "✕",
+                                gradient = listOf(Coral, CoralLight),
+                                onClick = { showHint = false },
+                                height = 48,
+                                fontSize = 14,
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Image still loading
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x80000000))
+                        .clickable(onClick = { showHint = false }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .background(Color.White, RoundedCornerShape(20.dp))
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "Loading hint...",
+                            fontFamily = DisplayFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Teal,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        PillButton(
+                            label = "Close",
+                            icon = "✕",
+                            gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                            textColor = TextDark,
+                            onClick = { showHint = false },
+                            height = 48,
+                            fontSize = 14,
+                        )
+                    }
+                }
+            }
         }
 
         if (showWin) {
