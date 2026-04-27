@@ -158,7 +158,8 @@ fun GameScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            // ----- Flex spacer (top) -----
+            Spacer(Modifier.weight(1f))
 
             // ----- 2. Pieces counter -----
             Text(
@@ -171,7 +172,7 @@ fun GameScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ----- 3. Puzzle board (fills the available square) -----
+            // ----- 3. Puzzle board (centered) -----
             PuzzleBoard(
                 gameState = gameState,
                 pieceBitmaps = levelImage?.pieces,
@@ -201,21 +202,20 @@ fun GameScreen(
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(8.dp))
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(12.dp))
 
-            // ----- 5. Bottom button row -----
+            // ----- 4. Button row (directly under puzzle) -----
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PillButton(
-                    label = "Hint",
-                    icon = "\uD83D\uDCA1", // 💡
-                    gradient = listOf(YellowWarm, OrangeWarm),
+                    label = "Home",
+                    icon = "\uD83C\uDFE0", // 🏠
+                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
                     textColor = TextDark,
-                    onClick = { audio.playHint(); showHint = true },
+                    onClick = onBackToMenu,
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
@@ -230,11 +230,11 @@ fun GameScreen(
                     fontSize = 13,
                 )
                 PillButton(
-                    label = "Home",
-                    icon = "\uD83C\uDFE0", // 🏠
-                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                    label = "Hint",
+                    icon = "\uD83D\uDCA1", // 💡
+                    gradient = listOf(YellowWarm, OrangeWarm),
                     textColor = TextDark,
-                    onClick = onBackToMenu,
+                    onClick = { audio.playHint(); showHint = true },
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
@@ -258,6 +258,12 @@ fun GameScreen(
                     fontSize = 11,
                 )
             }
+
+            // ----- Flex spacer (middle) -----
+            Spacer(Modifier.weight(1f))
+
+            // ----- Ad banner space -----
+            Spacer(Modifier.height(60.dp))
         }
 
         // ----- Overlays -----
