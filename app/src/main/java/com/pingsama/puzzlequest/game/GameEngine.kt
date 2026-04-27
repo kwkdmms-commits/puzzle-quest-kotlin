@@ -1,15 +1,14 @@
 package com.pingsama.puzzlequest.game
 
 /**
- * Pure data + functions describing puzzle state. Mirrors the web app's
- * `client/src/lib/gameEngineV2.ts` 1:1 in behavior:
+ * Pure data + functions describing puzzle state.
  *
  *  • Pieces are addressed by a 2-D grid of [GridPiece]s.
  *  • Each piece remembers the (row, col) it BELONGS in (`correctRow`/`correctCol`).
  *  • Initial placement is shuffled until no piece happens to start at its correct spot.
- *  • Correctly placed pieces are NOT locked and can still be moved.
+ *  • Any piece can be dragged and dropped on any grid cell.
+ *  • Dropping swaps the two pieces.
  *  • Adjacent correctly placed pieces move together as a group.
- *  • Wrong pieces can replace correct pieces (swap allowed).
  *  • Win == every piece is in its correct position.
  */
 
@@ -32,7 +31,6 @@ object GameEngine {
 
     /**
      * Build a fresh, shuffled game where every piece starts in a wrong position.
-     * (Also matches the original — keeps reshuffling until that invariant holds.)
      */
     fun initialize(imageId: String, gridSize: Int): GameState {
         val pieces = ArrayList<GridPiece>(gridSize * gridSize)
@@ -144,36 +142,58 @@ object GameEngine {
         val newGrid: MutableList<MutableList<GridPiece>> =
             state.grid.map { it.toMutableList() }.toMutableList()
 
-        // If moving a group, we need to handle the swap carefully
+        // Handle group movement
         if (group.size > 1) {
-            // Collect all pieces in the group and their destinations
-            val groupPieces = group.map { (r, c) -> newGrid[r][c] }
-            val destinationCells = group.map { (r, c) -> Pair(r + offsetRow, c + offsetCol) }
-
             // Check if all destination cells are valid
-            for ((destR, destC) in destinationCells) {
-                if (destR !in 0 until sz || destC !in 0 until sz) return state
-            }
-
-            // Collect pieces at destination cells
-            val destPieces = destinationCells.map { (r, c) -> newGrid[r][c] }
-
-            // Clear source cells
             for ((r, c) in group) {
-                newGrid[r][c] = GridPiece(id = "empty-$r-$c", correctRow = -1, correctCol = -1)
+                val destR = r + offsetRow
+                val destC = c + offsetCol
+                if (destR !in 0 until sz || destC !in 0 until sz) {
+                    // Group would go outside board, fall back to single piece swap
+                    val tmp = newGrid[pieceRow][pieceCol]
+                    newGrid[pieceRow][pieceCol] = newGrid[targetRow][targetCol]
+                    newGrid[targetRow][targetCol] = tmp
+                    break
+                }
             }
 
-            // Place group pieces at destinations
-            for (i in group.indices) {
-                val (destR, destC) = destinationCells[i]
-                newGrid[destR][destC] = groupPieces[i]
+            // If all destinations are valid, move the group
+            val allValid = group.all { (r, c) ->
+                val destR = r + offsetRow
+                val destC = c + offsetCol
+                destR in 0 until sz && destC in 0 until sz
             }
 
-            // Place destination pieces at source cells (swap)
-            val sourceList = group.toList()
-            for (i in destPieces.indices) {
-                val (srcR, srcC) = sourceList[i]
-                newGrid[srcR][srcC] = destPieces[i]
+            if (allValid && group.size > 1) {
+                // Collect pieces in the group
+                val groupPieces = group.map { (r, c) -> newGrid[r][c] }
+                val destinationCells = group.map { (r, c) -> Pair(r + offsetRow, c + offsetCol) }
+
+                // Collect pieces at destination cells
+                val destPieces = destinationCells.map { (r, c) -> newGrid[r][c] }
+
+                // Clear source cells
+                for ((r, c) in group) {
+                    newGrid[r][c] = GridPiece(id = "temp-$r-$c", correctRow = -1, correctCol = -1)
+                }
+
+                // Place group pieces at destinations
+                for (i in group.indices) {
+                    val (destR, destC) = destinationCells[i]
+                    newGrid[destR][destC] = groupPieces[i]
+                }
+
+                // Place destination pieces at source cells
+                val sourceList = group.toList()
+                for (i in destPieces.indices) {
+                    val (srcR, srcC) = sourceList[i]
+                    newGrid[srcR][srcC] = destPieces[i]
+                }
+            } else {
+                // Fall back to single piece swap
+                val tmp = newGrid[pieceRow][pieceCol]
+                newGrid[pieceRow][pieceCol] = newGrid[targetRow][targetCol]
+                newGrid[targetRow][targetCol] = tmp
             }
         } else {
             // Single piece: simple swap
