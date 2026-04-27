@@ -307,7 +307,6 @@ fun GameScreen(
 // ============================================================================
 
 @Composable
-@Composable
 private fun HintOverlay(image: ImageBitmap, onClose: () -> Unit) {
     Box(
         modifier = Modifier
@@ -517,58 +516,6 @@ private fun LosePopup(
                         fontSize = 14,
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RestartConfirmDialog(
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    Box(
-        modifier = Modifier.fillMaxSize().background(Color(0x80000000)),
-        contentAlignment = Alignment.Center,
-    ) {
-        PopupCard(modifier = Modifier.fillMaxWidth(0.85f)) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("\uD83D\uDD04", fontSize = 36.sp) // 🔄
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Restart Level?",
-                    color = TextDark,
-                    fontFamily = DisplayFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Your progress on this level will be reset.",
-                    color = TextMuted,
-                    fontFamily = BodyFamily,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(16.dp))
-                PillButton(
-                    label = "Yes, Restart",
-                    gradient = listOf(Coral, CoralLight),
-                    onClick = onConfirm,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 50,
-                    fontSize = 14,
-                )
-                Spacer(Modifier.height(8.dp))
-                PillButton(
-                    label = "No, Cancel",
-                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
-                    textColor = TextDark,
-                    onClick = onCancel,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 50,
-                    fontSize = 14,
-                )
             }
         }
     }
