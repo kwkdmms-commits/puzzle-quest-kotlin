@@ -209,7 +209,7 @@ fun GameScreen(
 
             // ----- 3. Pieces counter -----
             Text(
-                text = "${gameState.placedCount} / ${gameState.gridSize * gameState.gridSize} Pieces Placed",
+                text = "${gameState.lockedCount} / ${gameState.totalPieces} Pieces Placed",
                 style = TextStyle(
                     fontFamily = DisplayFamily,
                     fontWeight = FontWeight.Bold,
