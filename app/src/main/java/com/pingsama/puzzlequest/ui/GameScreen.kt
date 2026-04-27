@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -405,7 +406,7 @@ private fun HintOverlay(image: ImageBitmap, onClose: () -> Unit) {
                 onClick = onClose,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(end = (-12).dp, top = (-12).dp),
+                    .offset(x = 12.dp, y = (-12).dp),
             )
         }
     }
