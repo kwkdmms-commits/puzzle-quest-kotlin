@@ -209,7 +209,7 @@ fun GameScreen(
 
             // ----- 3. Pieces counter -----
             Text(
-                text = "${gameState.placedCount} / ${gameState.totalPieces} Pieces Placed",
+                text = "${gameState.placedCount} / ${gameState.gridSize * gameState.gridSize} Pieces Placed",
                 style = TextStyle(
                     fontFamily = DisplayFamily,
                     fontWeight = FontWeight.Bold,
@@ -229,7 +229,7 @@ fun GameScreen(
             ) {
                 PuzzleBoard(
                     gameState = gameState,
-                    levelImage = levelImage,
+                    pieceBitmaps = levelImage?.pieces,
                     onMove = { moveCount++ },
                     onLockSound = { audio.playSnap() },
                     onSwapSound = { audio.playSwap() },
