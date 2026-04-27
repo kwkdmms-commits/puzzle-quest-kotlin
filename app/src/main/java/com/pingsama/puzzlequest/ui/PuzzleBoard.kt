@@ -32,34 +32,24 @@ import androidx.compose.ui.zIndex
 import com.pingsama.puzzlequest.game.GameEngine
 import com.pingsama.puzzlequest.game.GameState
 import com.pingsama.puzzlequest.ui.theme.BoardMint
-import com.pingsama.puzzlequest.ui.theme.LockedGlow
 import kotlin.math.min
 
 /**
- * Drag-and-drop puzzle board — port of `client/src/components/PuzzleBoardV2.tsx`.
+ * Drag-and-drop puzzle board.
  *
- * Layout: an N×N grid of square pieces drawn from pre-sliced [pieceBitmaps].
- * Each piece's bitmap is keyed by its CORRECT position (row, col), so even after
- * shuffling/swapping a piece carries its original image with it.
- *
- * Interaction:
- *  • Press a piece → it lifts (alpha drops on the in-grid copy, a floating overlay
- *    follows your finger).
- *  • Release on a different cell → if it's the piece's correct cell, the piece snaps
- *    in and locks (cyan glow); otherwise it swaps with whatever was there.
- *  • Release on a locked cell or outside the board → cancelled, nothing changes.
+ *  • Press any piece → it lifts (alpha drops on the in-grid copy, a floating
+ *    overlay follows your finger).
+ *  • Release on a different cell → unconditional swap (the piece that was there
+ *    moves to where this one came from). Correctness/locking does NOT block.
+ *  • Release outside the board → cancelled, nothing changes.
  *
  * @param pieceBitmaps   Indexed by [correctRow][correctCol]. `null` while loading.
- * @param onMove         Called any time the state changes (we count every move).
- * @param onLockSound    Called when a piece snaps into its correct cell.
- * @param onSwapSound    Called when a piece swaps to a non-correct cell.
  */
 @Composable
 fun PuzzleBoard(
     gameState: GameState,
     pieceBitmaps: List<List<ImageBitmap>>?,
     onMove: (GameState) -> Unit,
-    onLockSound: () -> Unit,
     onSwapSound: () -> Unit,
     onWin: () -> Unit,
     modifier: Modifier = Modifier,
@@ -68,17 +58,14 @@ fun PuzzleBoard(
     val density = LocalDensity.current
 
     BoxWithConstraints(modifier = modifier) {
-        // Square board sized to whichever dimension is smaller.
         val boardSizeDp = min(maxWidth.value, maxHeight.value).dp
         val pieceSizeDp = boardSizeDp / gridSize
         val pieceSizePx = with(density) { pieceSizeDp.toPx() }
 
-        // Drag state lives here so it survives recompositions but resets when the
-        // game state object identity changes (new level / restart).
         var draggedCell by remember(gameState) { mutableStateOf<Pair<Int, Int>?>(null) }
         var pointerOffset by remember(gameState) { mutableStateOf(Offset.Zero) }
 
-        // Subtle scale-in when a new level starts (matches the original's spawn anim).
+        // Subtle scale-in when a new level starts.
         var loaded by remember(gameState) { mutableStateOf(false) }
         LaunchedEffect(gameState) { loaded = true }
         val boardScale by animateFloatAsState(
@@ -95,19 +82,19 @@ fun PuzzleBoard(
                 .pointerInput(gameState, pieceSizePx, gridSize) {
                     awaitPointerEventScope {
                         while (true) {
-                            // ----- wait for a finger to come down on a free cell -----
+                            // Wait for a finger to come down on any in-bounds cell.
                             val downChange = awaitPointerEvent(PointerEventPass.Main)
                                 .changes.firstOrNull { it.pressed && !it.previousPressed }
                                 ?: continue
 
                             val startCol = (downChange.position.x / pieceSizePx).toInt()
                             val startRow = (downChange.position.y / pieceSizePx).toInt()
-                            val cellPickable = startRow in 0 until gridSize &&
-                                               startCol in 0 until gridSize
+                            val inBounds = startRow in 0 until gridSize &&
+                                           startCol in 0 until gridSize
 
                             val pointerId = downChange.id
-                            if (!cellPickable) {
-                                // Wait for this finger to lift, then loop to await a new down.
+                            if (!inBounds) {
+                                // Wait for this finger to lift, then loop.
                                 while (true) {
                                     val ev = awaitPointerEvent(PointerEventPass.Main)
                                     val ch = ev.changes.firstOrNull { it.id == pointerId } ?: break
@@ -120,7 +107,7 @@ fun PuzzleBoard(
                             pointerOffset = downChange.position
                             downChange.consume()
 
-                            // ----- track movement until release -----
+                            // Track movement until release.
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Main)
                                 val change = event.changes.firstOrNull { it.id == pointerId } ?: break
@@ -136,7 +123,6 @@ fun PuzzleBoard(
                                         dropRow = dropRow, dropCol = dropCol,
                                         gridSize = gridSize,
                                         onMove = onMove,
-                                        onLockSound = onLockSound,
                                         onSwapSound = onSwapSound,
                                         onWin = onWin,
                                     )
@@ -149,7 +135,7 @@ fun PuzzleBoard(
                     }
                 },
         ) {
-            // ----- draw all pieces in their grid positions -----
+            // Draw all pieces in their current grid positions.
             if (pieceBitmaps != null) {
                 for (row in 0 until gridSize) {
                     for (col in 0 until gridSize) {
@@ -157,23 +143,11 @@ fun PuzzleBoard(
                         val bitmap = pieceBitmaps[piece.correctRow][piece.correctCol]
                         val isDragged = draggedCell?.let { it.first == row && it.second == col } == true
 
-                        val isCorrect = piece.correctRow == row && piece.correctCol == col
                         Box(
                             modifier = Modifier
                                 .size(pieceSizeDp)
                                 .offset(x = pieceSizeDp * col, y = pieceSizeDp * row)
-                                .alpha(if (isDragged) 0.25f else 1f)
-                                .then(
-                                    if (isCorrect)
-                                        Modifier
-                                            .shadow(
-                                                elevation = 10.dp,
-                                                shape = RoundedCornerShape(2.dp),
-                                                ambientColor = LockedGlow,
-                                                spotColor = LockedGlow,
-                                            )
-                                    else Modifier
-                                ),
+                                .alpha(if (isDragged) 0.25f else 1f),
                         ) {
                             Image(
                                 bitmap = bitmap,
@@ -186,7 +160,7 @@ fun PuzzleBoard(
                 }
             }
 
-            // ----- floating "ghost" piece following the finger -----
+            // Floating "ghost" piece following the finger.
             val dragged = draggedCell
             if (dragged != null && pieceBitmaps != null) {
                 val (dr, dc) = dragged
@@ -217,32 +191,22 @@ fun PuzzleBoard(
     }
 }
 
-// ----- helpers -----
-
 private fun handleDrop(
     state: GameState,
-    srcRow: Int,
-    srcCol: Int,
-    dropRow: Int,
-    dropCol: Int,
+    srcRow: Int, srcCol: Int,
+    dropRow: Int, dropCol: Int,
     gridSize: Int,
     onMove: (GameState) -> Unit,
-    onLockSound: () -> Unit,
     onSwapSound: () -> Unit,
     onWin: () -> Unit,
 ) {
     if (dropRow !in 0 until gridSize || dropCol !in 0 until gridSize) return
     if (srcRow == dropRow && srcCol == dropCol) return
 
-    val draggedPiece = state.grid[srcRow][srcCol]
-    val draggedWasCorrect = draggedPiece.correctRow == srcRow && draggedPiece.correctCol == srcCol
-    val willBecomeCorrect = draggedPiece.correctRow == dropRow && draggedPiece.correctCol == dropCol
-
     val newState = GameEngine.placePiece(state, srcRow, srcCol, dropRow, dropCol)
     if (newState === state) return
 
     onMove(newState)
-    // Play lock sound if piece moves into correct position, swap sound otherwise
-    if (willBecomeCorrect) onLockSound() else onSwapSound()
+    onSwapSound()
     if (newState.isWon) onWin()
 }

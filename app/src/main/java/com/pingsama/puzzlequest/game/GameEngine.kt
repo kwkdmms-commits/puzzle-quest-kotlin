@@ -1,15 +1,12 @@
 package com.pingsama.puzzlequest.game
 
 /**
- * Pure data + functions describing puzzle state.
+ * Pure puzzle state + movement logic.
  *
- *  • Pieces are addressed by a 2-D grid of [GridPiece]s.
- *  • Each piece remembers the (row, col) it BELONGS in (`correctRow`/`correctCol`).
- *  • Initial placement is shuffled until no piece happens to start at its correct spot.
- *  • Any piece can be dragged and dropped on any grid cell.
- *  • Dropping swaps the two pieces.
- *  • Adjacent correctly placed pieces move together as a group.
- *  • Win == every piece is in its correct position.
+ *  • Pieces have NO locked flag. Every piece is always draggable.
+ *  • A piece is "correct" iff its current position matches (correctRow, correctCol).
+ *  • Drag & drop = unconditional swap of source and destination cells.
+ *  • Win = every cell holds the piece that belongs there.
  */
 
 data class GridPiece(
@@ -22,16 +19,14 @@ data class GameState(
     val gridSize: Int,
     val imageId: String,
     val grid: List<List<GridPiece>>,
-    val correctCount: Int,  // Number of pieces in correct positions
+    val correctCount: Int,
     val totalPieces: Int,
     val isWon: Boolean,
 )
 
 object GameEngine {
 
-    /**
-     * Build a fresh, shuffled game where every piece starts in a wrong position.
-     */
+    /** Build a fresh game where no piece happens to start at its correct position. */
     fun initialize(imageId: String, gridSize: Int): GameState {
         val pieces = ArrayList<GridPiece>(gridSize * gridSize)
         for (row in 0 until gridSize) {
@@ -44,7 +39,7 @@ object GameEngine {
             }
         }
 
-        var working = pieces.toMutableList().also { it.shuffle() }
+        val working = pieces.toMutableList().also { it.shuffle() }
         var attempts = 0
         while (anyPieceCorrectlyPlaced(working, gridSize) && attempts < 200) {
             working.shuffle()
@@ -54,15 +49,7 @@ object GameEngine {
         val grid = List(gridSize) { row ->
             List(gridSize) { col -> working[row * gridSize + col] }
         }
-
-        return GameState(
-            gridSize = gridSize,
-            imageId = imageId,
-            grid = grid,
-            correctCount = 0,
-            totalPieces = gridSize * gridSize,
-            isWon = false,
-        )
+        return finalize(grid, gridSize, imageId)
     }
 
     private fun anyPieceCorrectlyPlaced(flat: List<GridPiece>, gridSize: Int): Boolean {
@@ -73,151 +60,54 @@ object GameEngine {
         return false
     }
 
-    /**
-     * Find all pieces that are correctly placed and adjacent to the piece at (row, col).
-     * Returns a set of (row, col) coordinates representing the connected group.
-     */
-    private fun findConnectedCorrectGroup(
-        grid: List<List<GridPiece>>,
-        startRow: Int,
-        startCol: Int,
-        gridSize: Int,
-    ): Set<Pair<Int, Int>> {
-        val group = mutableSetOf<Pair<Int, Int>>()
-        val queue = mutableListOf(Pair(startRow, startCol))
-
-        while (queue.isNotEmpty()) {
-            val (r, c) = queue.removeAt(0)
-            if (Pair(r, c) in group) continue
-            if (r !in 0 until gridSize || c !in 0 until gridSize) continue
-
-            val piece = grid[r][c]
-            if (piece.correctRow != r || piece.correctCol != c) continue
-
-            group.add(Pair(r, c))
-
-            // Check all 4 adjacent cells (up, down, left, right)
-            queue.add(Pair(r - 1, c))
-            queue.add(Pair(r + 1, c))
-            queue.add(Pair(r, c - 1))
-            queue.add(Pair(r, c + 1))
-        }
-
-        return group
+    /** Is the piece at (row, col) sitting on its correct cell? */
+    fun isCorrect(state: GameState, row: Int, col: Int): Boolean {
+        val p = state.grid[row][col]
+        return p.correctRow == row && p.correctCol == col
     }
 
     /**
-     * Move a piece (or group of pieces) from (pieceRow, pieceCol) onto (targetRow, targetCol).
-     * If the piece at source is correctly placed and adjacent to other correct pieces,
-     * move the entire connected group.
-     * Returns the new state (or [state] unchanged if the move is invalid).
+     * Unconditional swap of (srcRow, srcCol) with (dstRow, dstCol). Returns the
+     * new state, or [state] unchanged only if indices are off-grid or src == dst.
+     * Never blocked by correctness — a correct piece can be displaced freely.
      */
     fun placePiece(
         state: GameState,
-        pieceRow: Int,
-        pieceCol: Int,
-        targetRow: Int,
-        targetCol: Int,
+        srcRow: Int, srcCol: Int,
+        dstRow: Int, dstCol: Int,
     ): GameState {
         val sz = state.gridSize
-        if (pieceRow !in 0 until sz || pieceCol !in 0 until sz) return state
-        if (targetRow !in 0 until sz || targetCol !in 0 until sz) return state
-        if (pieceRow == targetRow && pieceCol == targetCol) return state // dropped on self → no-op
+        if (srcRow !in 0 until sz || srcCol !in 0 until sz) return state
+        if (dstRow !in 0 until sz || dstCol !in 0 until sz) return state
+        if (srcRow == dstRow && srcCol == dstCol) return state
 
-        val piece = state.grid[pieceRow][pieceCol]
+        val newGrid = state.grid.map { it.toMutableList() }.toMutableList()
+        val tmp = newGrid[srcRow][srcCol]
+        newGrid[srcRow][srcCol] = newGrid[dstRow][dstCol]
+        newGrid[dstRow][dstCol] = tmp
+        return finalize(newGrid, sz, state.imageId)
+    }
 
-        // Check if this piece is part of a connected correct group
-        val isCorrect = piece.correctRow == pieceRow && piece.correctCol == pieceCol
-        val group = if (isCorrect) {
-            findConnectedCorrectGroup(state.grid, pieceRow, pieceCol, sz)
-        } else {
-            setOf(Pair(pieceRow, pieceCol))
-        }
-
-        // Calculate offset for group movement
-        val offsetRow = targetRow - pieceRow
-        val offsetCol = targetCol - pieceCol
-
-        // Create new grid
-        val newGrid: MutableList<MutableList<GridPiece>> =
-            state.grid.map { it.toMutableList() }.toMutableList()
-
-        // Handle group movement
-        if (group.size > 1) {
-            // Check if all destination cells are valid
-            for ((r, c) in group) {
-                val destR = r + offsetRow
-                val destC = c + offsetCol
-                if (destR !in 0 until sz || destC !in 0 until sz) {
-                    // Group would go outside board, fall back to single piece swap
-                    val tmp = newGrid[pieceRow][pieceCol]
-                    newGrid[pieceRow][pieceCol] = newGrid[targetRow][targetCol]
-                    newGrid[targetRow][targetCol] = tmp
-                    break
-                }
-            }
-
-            // If all destinations are valid, move the group
-            val allValid = group.all { (r, c) ->
-                val destR = r + offsetRow
-                val destC = c + offsetCol
-                destR in 0 until sz && destC in 0 until sz
-            }
-
-            if (allValid && group.size > 1) {
-                // Collect pieces in the group
-                val groupPieces = group.map { (r, c) -> newGrid[r][c] }
-                val destinationCells = group.map { (r, c) -> Pair(r + offsetRow, c + offsetCol) }
-
-                // Collect pieces at destination cells
-                val destPieces = destinationCells.map { (r, c) -> newGrid[r][c] }
-
-                // Clear source cells
-                for ((r, c) in group) {
-                    newGrid[r][c] = GridPiece(id = "temp-$r-$c", correctRow = -1, correctCol = -1)
-                }
-
-                // Place group pieces at destinations
-                for (i in group.indices) {
-                    val (destR, destC) = destinationCells[i]
-                    newGrid[destR][destC] = groupPieces[i]
-                }
-
-                // Place destination pieces at source cells
-                val sourceList = group.toList()
-                for (i in destPieces.indices) {
-                    val (srcR, srcC) = sourceList[i]
-                    newGrid[srcR][srcC] = destPieces[i]
-                }
-            } else {
-                // Fall back to single piece swap
-                val tmp = newGrid[pieceRow][pieceCol]
-                newGrid[pieceRow][pieceCol] = newGrid[targetRow][targetCol]
-                newGrid[targetRow][targetCol] = tmp
-            }
-        } else {
-            // Single piece: simple swap
-            val tmp = newGrid[pieceRow][pieceCol]
-            newGrid[pieceRow][pieceCol] = newGrid[targetRow][targetCol]
-            newGrid[targetRow][targetCol] = tmp
-        }
-
-        // Count correct pieces
+    private fun finalize(
+        grid: List<List<GridPiece>>,
+        gridSize: Int,
+        imageId: String,
+    ): GameState {
         var correct = 0
-        for (r in 0 until sz) {
-            for (c in 0 until sz) {
-                val p = newGrid[r][c]
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
+                val p = grid[r][c]
                 if (p.correctRow == r && p.correctCol == c) correct++
             }
         }
-
-        // Check win condition: all pieces in correct positions
-        val isWon = correct == state.totalPieces
-
-        return state.copy(
-            grid = newGrid,
+        val total = gridSize * gridSize
+        return GameState(
+            gridSize = gridSize,
+            imageId = imageId,
+            grid = grid.map { it.toList() },
             correctCount = correct,
-            isWon = isWon,
+            totalPieces = total,
+            isWon = correct == total,
         )
     }
 }
