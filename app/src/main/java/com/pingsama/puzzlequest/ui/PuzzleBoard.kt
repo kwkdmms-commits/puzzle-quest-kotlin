@@ -103,8 +103,7 @@ fun PuzzleBoard(
                             val startCol = (downChange.position.x / pieceSizePx).toInt()
                             val startRow = (downChange.position.y / pieceSizePx).toInt()
                             val cellPickable = startRow in 0 until gridSize &&
-                                               startCol in 0 until gridSize &&
-                                               !gameState.grid[startRow][startCol].isLocked
+                                               startCol in 0 until gridSize
 
                             val pointerId = downChange.id
                             if (!cellPickable) {
@@ -158,13 +157,14 @@ fun PuzzleBoard(
                         val bitmap = pieceBitmaps[piece.correctRow][piece.correctCol]
                         val isDragged = draggedCell?.let { it.first == row && it.second == col } == true
 
+                        val isCorrect = piece.correctRow == row && piece.correctCol == col
                         Box(
                             modifier = Modifier
                                 .size(pieceSizeDp)
                                 .offset(x = pieceSizeDp * col, y = pieceSizeDp * row)
                                 .alpha(if (isDragged) 0.25f else 1f)
                                 .then(
-                                    if (piece.isLocked)
+                                    if (isCorrect)
                                         Modifier
                                             .shadow(
                                                 elevation = 10.dp,
@@ -233,16 +233,16 @@ private fun handleDrop(
 ) {
     if (dropRow !in 0 until gridSize || dropCol !in 0 until gridSize) return
     if (srcRow == dropRow && srcCol == dropCol) return
-    val target = state.grid[dropRow][dropCol]
-    if (target.isLocked) return
 
     val draggedPiece = state.grid[srcRow][srcCol]
-    val willLock = draggedPiece.correctRow == dropRow && draggedPiece.correctCol == dropCol
+    val draggedWasCorrect = draggedPiece.correctRow == srcRow && draggedPiece.correctCol == srcCol
+    val willBecomeCorrect = draggedPiece.correctRow == dropRow && draggedPiece.correctCol == dropCol
 
     val newState = GameEngine.placePiece(state, srcRow, srcCol, dropRow, dropCol)
     if (newState === state) return
 
     onMove(newState)
-    if (willLock) onLockSound() else onSwapSound()
+    // Play lock sound if piece moves into correct position, swap sound otherwise
+    if (willBecomeCorrect) onLockSound() else onSwapSound()
     if (newState.isWon) onWin()
 }
