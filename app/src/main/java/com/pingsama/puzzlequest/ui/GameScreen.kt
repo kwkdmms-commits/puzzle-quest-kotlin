@@ -238,6 +238,7 @@ fun GameScreen(
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
+                    showAdBadge = true,
                 )
                 PillButton(
                     label = "More Time",
@@ -256,6 +257,7 @@ fun GameScreen(
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 11,
+                    showAdBadge = !moreTimeUsed,
                 )
             }
 

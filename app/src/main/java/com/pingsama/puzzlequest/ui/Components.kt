@@ -52,6 +52,7 @@ fun PillButton(
     enabled: Boolean = true,
     height: Int = 56,
     fontSize: Int = 16,
+    showAdBadge: Boolean = false,
 ) {
     val shape = RoundedCornerShape(percent = 50)
     Box(
@@ -84,6 +85,27 @@ fun PillButton(
                 ),
                 maxLines = 1,
             )
+        }
+        
+        // Ad badge in top-right corner
+        if (showAdBadge) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 6.dp, y = (-6).dp)
+                    .size(24.dp)
+                    .background(
+                        color = Color(0xFFFF5252),
+                        shape = RoundedCornerShape(percent = 50)
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "🎬",
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
