@@ -25,7 +25,7 @@ object LevelSystem {
     }
 
     fun timeLimitFor(level: Int): Int =
-        if (configFor(level).gridSize == 6) 240 else 150
+        if (configFor(level).gridSize == 6) 150 else 90
 
     /** Asset path, e.g. "images/level3.webp". Supports levels 1-50. */
     fun assetForLevel(level: Int): String {
