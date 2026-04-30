@@ -230,19 +230,18 @@ fun GameScreen(
                     fontSize = 13,
                 )
                 PillButton(
-                    label = "Hint",
-                    icon = "\uD83D\uDCA1", // 💡
+                    label = "Hint\n(Ad)",
+                    icon = "💡", // 💡
                     gradient = listOf(YellowWarm, OrangeWarm),
                     textColor = TextDark,
                     onClick = { audio.playHint(); showHint = true },
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
-                    showAdBadge = true,
                 )
                 PillButton(
-                    label = "More Time",
-                    icon = "\u23F1", // ⏱
+                    label = "More\n(Ad)",
+                    icon = "⏱", // ⏱
                     gradient = if (moreTimeUsed)
                         listOf(Color(0xFFEDEDED), Color(0xFFEDEDED))
                     else listOf(OrangeWarm, Coral),
@@ -257,7 +256,6 @@ fun GameScreen(
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 11,
-                    showAdBadge = !moreTimeUsed,
                 )
             }
 
