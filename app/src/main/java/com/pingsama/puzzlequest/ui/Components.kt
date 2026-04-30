@@ -88,13 +88,13 @@ fun PillButton(
             )
         }
         
-        // Ad badge in top-right corner (moved inward to prevent clipping)
+        // Ad badge in top-right corner (small, non-overlapping)
         if (showAdBadge) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .offset(x = (-6).dp, y = (6).dp)
-                    .size(24.dp)
+                    .padding(top = 6.dp, end = 10.dp)
+                    .size(20.dp)
                     .background(
                         color = Color(0xFFFF5252),
                         shape = RoundedCornerShape(percent = 50)
@@ -103,7 +103,7 @@ fun PillButton(
             ) {
                 Text(
                     text = "🎬",
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     textAlign = TextAlign.Center,
                 )
             }
