@@ -2,6 +2,7 @@ package com.pingsama.puzzlequest
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -34,8 +35,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // Initialize AdMob
-        AdManager.initialize(this)
+        // Initialize AdMob (fail-safe)
+        try {
+            AdManager.initialize(this)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to initialize AdMob", e)
+            // App continues even if AdMob fails
+        }
 
         setContent {
             PuzzleQuestTheme {

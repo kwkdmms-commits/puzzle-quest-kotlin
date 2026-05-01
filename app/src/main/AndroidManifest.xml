@@ -18,10 +18,10 @@
         android:theme="@style/Theme.PuzzleQuest.Splash"
         tools:targetApi="34">
 
-        <!-- AdMob App ID (test ID for development) -->
+        <!-- AdMob App ID (Google test app ID for development) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy" />
+            android:value="ca-app-pub-3940256099942544~3347511713" />
 
         <activity
             android:name=".MainActivity"
