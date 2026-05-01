@@ -266,35 +266,30 @@ fun GameScreen(
             Spacer(Modifier.weight(1f))
 
             // ----- Ad banner space (fail-safe) -----
-            try {
-                AndroidView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                    factory = { context ->
-                        try {
-                            AdView(context).apply {
-                                try {
-                                    setAdUnitId(AdManager.getBannerAdUnitId())
-                                    setAdSize(AdManager.getBannerAdSize())
-                                    AdManager.loadBannerAd(this)
-                                } catch (e: Exception) {
-                                    android.util.Log.e("GameScreen", "Failed to configure banner ad", e)
-                                    // Continue without ad
-                                }
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                factory = { context ->
+                    // Create AdView with fail-safe error handling
+                    try {
+                        AdView(context).apply {
+                            try {
+                                setAdUnitId(AdManager.getBannerAdUnitId())
+                                setAdSize(AdManager.getBannerAdSize())
+                                AdManager.loadBannerAd(this)
+                            } catch (e: Exception) {
+                                android.util.Log.e("GameScreen", "Failed to configure banner ad", e)
+                                // Continue without ad - AdView will show empty
                             }
-                        } catch (e: Exception) {
-                            android.util.Log.e("GameScreen", "Failed to create AdView", e)
-                            // Return empty box as fallback
-                            Box(Modifier.fillMaxWidth().height(60.dp))
                         }
+                    } catch (e: Exception) {
+                        android.util.Log.e("GameScreen", "Failed to create AdView", e)
+                        // Return empty View as fallback
+                        android.view.View(context)
                     }
-                )
-            } catch (e: Exception) {
-                android.util.Log.e("GameScreen", "Failed to create banner AndroidView", e)
-                // Fallback: empty space where ad would be
-                Spacer(Modifier.height(60.dp))
-            }
+                }
+            )
         }
 
         // ----- Overlays -----
