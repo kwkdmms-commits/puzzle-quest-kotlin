@@ -40,8 +40,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
-import com.pingsama.puzzlequest.ads.AdManager
 import com.pingsama.puzzlequest.audio.AudioManager
 import com.pingsama.puzzlequest.game.GameEngine
 import com.pingsama.puzzlequest.game.LeaderboardManager
@@ -265,31 +270,8 @@ fun GameScreen(
             // ----- Flex spacer (middle) -----
             Spacer(Modifier.weight(1f))
 
-            // ----- Ad banner space (fail-safe) -----
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                factory = { context ->
-                    // Create AdView with fail-safe error handling
-                    try {
-                        AdView(context).apply {
-                            try {
-                                setAdUnitId(AdManager.getBannerAdUnitId())
-                                setAdSize(AdManager.getBannerAdSize())
-                                AdManager.loadBannerAd(this)
-                            } catch (e: Exception) {
-                                android.util.Log.e("GameScreen", "Failed to configure banner ad", e)
-                                // Continue without ad - AdView will show empty
-                            }
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("GameScreen", "Failed to create AdView", e)
-                        // Return empty View as fallback
-                        android.view.View(context)
-                    }
-                }
-            )
+            // ----- Ad banner space -----
+            BannerAd()
         }
 
         // ----- Overlays -----
@@ -551,4 +533,47 @@ private fun LosePopup(
             }
         }
     }
+}
+
+/**
+ * Banner ad composable.
+ * Displays a Google AdMob banner ad with proper lifecycle management.
+ */
+@Composable
+private fun BannerAd(
+    adUnitId: String = "ca-app-pub-3940256099942544/6300978111", // test ID; swap before release
+) {
+    val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+
+    // Build AdView once; remembered for the lifetime of this composable.
+    val adView = remember {
+        AdView(context).apply {
+            setAdSize(AdSize.BANNER)
+            this.adUnitId = adUnitId
+            loadAd(AdRequest.Builder().build())
+        }
+    }
+
+    // Mirror lifecycle events so AdMob can manage network requests correctly.
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME  -> adView.resume()
+                Lifecycle.Event.ON_PAUSE   -> adView.pause()
+                Lifecycle.Event.ON_DESTROY -> adView.destroy()
+                else                       -> Unit
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            adView.destroy()
+        }
+    }
+
+    AndroidView(
+        factory = { adView },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

@@ -1,6 +1,7 @@
 package com.pingsama.puzzlequest
 
 import android.app.Application
+import com.google.android.gms.ads.MobileAds
 import com.pingsama.puzzlequest.audio.AudioManager
 import com.pingsama.puzzlequest.game.LeaderboardManager
 
@@ -12,6 +13,13 @@ import com.pingsama.puzzlequest.game.LeaderboardManager
 class PuzzleQuestApp : Application() {
     val audio: AudioManager by lazy { AudioManager() }
     val leaderboard: LeaderboardManager by lazy { LeaderboardManager(this) }
+
+    override fun onCreate() {
+        super.onCreate()
+        // Initialize AdMob once. Done on a background thread so it doesn't delay
+        // the splash screen. The banner won't load until this completes, which is fine.
+        MobileAds.initialize(this)
+    }
 
     override fun onTerminate() {
         super.onTerminate()
