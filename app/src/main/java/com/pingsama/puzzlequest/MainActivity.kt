@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.pingsama.puzzlequest.ads.AdManager
 import com.pingsama.puzzlequest.game.LevelSystem
 import com.pingsama.puzzlequest.ui.GameScreen
 import com.pingsama.puzzlequest.ui.MainMenuScreen
@@ -32,6 +33,9 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Initialize AdMob
+        AdManager.initialize(this)
 
         setContent {
             PuzzleQuestTheme {

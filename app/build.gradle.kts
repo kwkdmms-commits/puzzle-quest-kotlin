@@ -79,6 +79,9 @@ dependencies {
     // Splash screen API for a clean launch experience
     implementation("androidx.core:core-splashscreen:1.0.1")
 
+    // Google Mobile Ads SDK for AdMob
+    implementation("com.google.android.gms:play-services-ads:22.6.0")
+
     // NOTE: We use system sans-serif. To swap in Fredoka/Poppins later, add:
     //   implementation("androidx.compose.ui:ui-text-google-fonts:1.6.8")
     // and follow the comment in ui/theme/Type.kt.

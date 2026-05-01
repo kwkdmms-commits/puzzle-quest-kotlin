@@ -39,6 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.AdView
+import com.pingsama.puzzlequest.ads.AdManager
 import com.pingsama.puzzlequest.audio.AudioManager
 import com.pingsama.puzzlequest.game.GameEngine
 import com.pingsama.puzzlequest.game.LeaderboardManager
@@ -263,7 +266,18 @@ fun GameScreen(
             Spacer(Modifier.weight(1f))
 
             // ----- Ad banner space -----
-            Spacer(Modifier.height(60.dp))
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                factory = { context ->
+                    AdView(context).apply {
+                        setAdUnitId(AdManager.getBannerAdUnitId())
+                        setAdSize(AdManager.getBannerAdSize())
+                        AdManager.loadBannerAd(this)
+                    }
+                }
+            )
         }
 
         // ----- Overlays -----
