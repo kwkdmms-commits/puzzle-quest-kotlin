@@ -45,11 +45,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import android.app.Activity
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
+import com.pingsama.puzzlequest.ads.InterstitialAdManager
 import com.pingsama.puzzlequest.audio.AudioManager
 import com.pingsama.puzzlequest.game.GameEngine
 import com.pingsama.puzzlequest.game.LeaderboardManager
@@ -103,15 +105,26 @@ fun GameScreen(
     var showLose by remember(currentLevel) { mutableStateOf(false) }
     var showRestartConfirm by remember { mutableStateOf(false) }
 
+    val activity = LocalContext.current as? Activity
+    var levelStartTime by remember(currentLevel) { mutableStateOf(System.currentTimeMillis()) }
+
     // Persist the current level whenever it advances.
-    LaunchedEffect(currentLevel) { leaderboard.saveCurrentLevel(currentLevel) }
+    LaunchedEffect(currentLevel) {
+        leaderboard.saveCurrentLevel(currentLevel)
+        // Preload interstitial when entering a new level
+        activity?.let { InterstitialAdManager.preloadInterstitial(it) }
+        levelStartTime = System.currentTimeMillis()
+    }
 
     // Countdown timer — runs only when no popup is showing.
+    // Also tracks total gameplay time for interstitial ad conditions
     LaunchedEffect(currentLevel, showWin, showLose) {
         if (showWin || showLose) return@LaunchedEffect
         while (timeRemaining > 0) {
             delay(1000L)
             timeRemaining -= 1
+            // Update gameplay time for interstitial ad tracking
+            InterstitialAdManager.updateGameplayTime(1000L)
         }
         if (timeRemaining <= 0) showLose = true
     }
@@ -242,7 +255,11 @@ fun GameScreen(
                     label = "Restart",
                     icon = "\uD83D\uDD04", // 🔄
                     gradient = listOf(Coral, CoralLight),
-                    onClick = { showRestartConfirm = true },
+                    onClick = {
+                        // Record screen change for restart
+                        InterstitialAdManager.recordScreenChange()
+                        showRestartConfirm = true
+                    },
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
@@ -298,7 +315,17 @@ fun GameScreen(
                 puzzlesCompleted = leaderboard.puzzlesCompleted(),
                 bestMoves = leaderboard.bestMoves(levelConfig.gridSize),
                 bestTimeUsed = leaderboard.bestTimeUsed(levelConfig.gridSize),
-                onNext = onLevelComplete,
+                onNext = {
+                    // Record screen change and check if interstitial should be shown
+                    InterstitialAdManager.recordScreenChange()
+                    if (InterstitialAdManager.shouldShowAd() && activity != null) {
+                        InterstitialAdManager.showInterstitialIfReady(activity!!) {
+                            onLevelComplete()
+                        }
+                    } else {
+                        onLevelComplete()
+                    }
+                },
                 onRetry = { resetLevel() },
                 onMenu = onBackToMenu,
             )
