@@ -133,13 +133,10 @@ fun GameScreen(
             .windowInsetsPadding(WindowInsets.systemBars)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        // ----- Main content: Header + centered puzzle + buttons -----
+        // ----- Main content: Header at top, centered gameplay area, buttons below -----
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 60.dp + 8.dp), // Reserve space for banner ad
+            modifier = Modifier.fillMaxSize().padding(bottom = 60.dp + 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
             // ----- 1. Header -----
             Row(
@@ -173,48 +170,55 @@ fun GameScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
-
-            // ----- 2. Pieces counter -----
-            Text(
-                text = "${gameState.correctCount} / ${gameState.totalPieces} Pieces Placed",
-                color = Teal,
-                fontFamily = DisplayFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // ----- 3. Puzzle board (fills the available square) -----
-            PuzzleBoard(
-                gameState = gameState,
-                pieceBitmaps = levelImage?.pieces,
-                onMove = { newState ->
-                    gameState = newState
-                    moveCount += 1
-                },
-                onSwapSound = { audio.playSnap() },
-                onWin = {
-                    audio.playWin()
-                    val timeUsed = timeLimit - timeRemaining
-                    leaderboard.saveScore(levelConfig.gridSize, moveCount, timeUsed)
-                    leaderboard.savePuzzlesCompleted(leaderboard.puzzlesCompleted() + 1)
-                    showWin = true
-                },
+            // ----- Centered gameplay area -----
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f),
-            )
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                // ----- 2. Pieces counter -----
+                Text(
+                    text = "${gameState.correctCount} / ${gameState.totalPieces} Pieces Placed",
+                    color = Teal,
+                    fontFamily = DisplayFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                )
 
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "\uD83C\uDFAF  Drag pieces. Drop on correct spot to lock.",
-                color = TextMuted,
-                fontFamily = BodyFamily,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center,
-            )
+                Spacer(Modifier.height(8.dp))
+
+                // ----- 3. Puzzle board (fills the available square) -----
+                PuzzleBoard(
+                    gameState = gameState,
+                    pieceBitmaps = levelImage?.pieces,
+                    onMove = { newState ->
+                        gameState = newState
+                        moveCount += 1
+                    },
+                    onSwapSound = { audio.playSnap() },
+                    onWin = {
+                        audio.playWin()
+                        val timeUsed = timeLimit - timeRemaining
+                        leaderboard.saveScore(levelConfig.gridSize, moveCount, timeUsed)
+                        leaderboard.savePuzzlesCompleted(leaderboard.puzzlesCompleted() + 1)
+                        showWin = true
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f),
+                )
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "\uD83C\uDFAF  Drag pieces. Drop on correct spot to lock.",
+                    color = TextMuted,
+                    fontFamily = BodyFamily,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                )
+            }
 
             Spacer(Modifier.height(8.dp))
 
