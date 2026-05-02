@@ -102,6 +102,7 @@ fun GameScreen(
     var moveCount by remember(currentLevel) { mutableIntStateOf(0) }
     var timeRemaining by remember(currentLevel) { mutableIntStateOf(timeLimit) }
     var moreTimeUsed by remember(currentLevel) { mutableStateOf(false) }
+    var hintUnlockedInLevel by remember(currentLevel) { mutableStateOf(false) }
     var showHint by remember { mutableStateOf(false) }
     var showWin by remember(currentLevel) { mutableStateOf(false) }
     var showLose by remember(currentLevel) { mutableStateOf(false) }
@@ -139,6 +140,7 @@ fun GameScreen(
         moveCount = 0
         timeRemaining = timeLimit
         moreTimeUsed = false
+        hintUnlockedInLevel = false
         showHint = false
         showWin = false
         showLose = false
@@ -227,7 +229,7 @@ fun GameScreen(
                         .aspectRatio(1f),
                 )
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = "\uD83C\uDFAF  Drag pieces. Drop on correct spot to lock.",
                     color = TextMuted,
@@ -237,7 +239,7 @@ fun GameScreen(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
             // ----- 4. Bottom button row (reordered: Home - Restart - Hint - More Time) -----
             Row(
@@ -274,18 +276,25 @@ fun GameScreen(
                     gradient = listOf(YellowWarm, OrangeWarm),
                     textColor = TextDark,
                     onClick = {
-                        // Show rewarded ad first, then hint
-                        if (activity != null) {
-                            RewardedAdManager.showRewardedAdIfReady(
-                                activity!!,
-                                onRewardEarned = {
-                                    audio.playHint()
-                                    showHint = true
-                                },
-                                onAdNotReady = {
-                                    Log.d("HINT", "Ad not ready, try again")
-                                }
-                            )
+                        if (hintUnlockedInLevel) {
+                            // Hint already unlocked in this level, show immediately
+                            audio.playHint()
+                            showHint = true
+                        } else {
+                            // Show rewarded ad first, then unlock hint
+                            if (activity != null) {
+                                RewardedAdManager.showRewardedAdIfReady(
+                                    activity!!,
+                                    onRewardEarned = {
+                                        hintUnlockedInLevel = true
+                                        audio.playHint()
+                                        showHint = true
+                                    },
+                                    onAdNotReady = {
+                                        Log.d("HINT", "Ad not ready, try again")
+                                    }
+                                )
+                            }
                         }
                     },
                     modifier = Modifier.weight(1f),
