@@ -215,18 +215,18 @@ fun GameScreen(
             Spacer(Modifier.height(8.dp))
             Spacer(Modifier.weight(1f))
 
-            // ----- 5. Bottom button row -----
+            // ----- 5. Bottom button row (reordered: Home - Restart - Hint - More Time) -----
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PillButton(
-                    label = "Hint",
-                    icon = "\uD83D\uDCA1", // 💡
-                    gradient = listOf(YellowWarm, OrangeWarm),
+                    label = "Home",
+                    icon = "\uD83C\uDFE0", // 🏠
+                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
                     textColor = TextDark,
-                    onClick = { audio.playHint(); showHint = true },
+                    onClick = onBackToMenu,
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
@@ -241,11 +241,11 @@ fun GameScreen(
                     fontSize = 13,
                 )
                 PillButton(
-                    label = "Home",
-                    icon = "\uD83C\uDFE0", // 🏠
-                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                    label = "Hint",
+                    icon = "\uD83D\uDCA1", // 💡
+                    gradient = listOf(YellowWarm, OrangeWarm),
                     textColor = TextDark,
-                    onClick = onBackToMenu,
+                    onClick = { audio.playHint(); showHint = true },
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
