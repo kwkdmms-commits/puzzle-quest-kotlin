@@ -133,9 +133,13 @@ fun GameScreen(
             .windowInsetsPadding(WindowInsets.systemBars)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
+        // ----- Main content: Header + centered puzzle + buttons -----
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 60.dp + 8.dp), // Reserve space for banner ad
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
             // ----- 1. Header -----
             Row(
@@ -213,9 +217,8 @@ fun GameScreen(
             )
 
             Spacer(Modifier.height(8.dp))
-            Spacer(Modifier.weight(1f))
 
-            // ----- 5. Bottom button row (reordered: Home - Restart - Hint - More Time) -----
+            // ----- 4. Bottom button row (reordered: Home - Restart - Hint - More Time) -----
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -269,11 +272,14 @@ fun GameScreen(
                     fontSize = 11,
                 )
             }
-
-            // ----- 6. Banner ad — only shown during gameplay -----
-            Spacer(Modifier.height(8.dp))
-            BannerAd()
         }
+
+        // ----- 5. Banner ad — pinned to bottom -----
+        BannerAd(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .height(60.dp)
+        )
 
         // ----- Overlays -----
         if (showHint && levelImage != null) {
@@ -555,6 +561,7 @@ private fun LosePopup(
 @Composable
 private fun BannerAd(
     adUnitId: String = "ca-app-pub-3940256099942544/6300978111", // ← test ID; swap before release
+    modifier: Modifier = Modifier,
 ) {
     android.util.Log.d("ADMOB", "BannerAd composable reached")
 
@@ -632,7 +639,7 @@ private fun BannerAd(
     } else {
         AndroidView(
             factory = { adView },
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .height(60.dp),
         )
