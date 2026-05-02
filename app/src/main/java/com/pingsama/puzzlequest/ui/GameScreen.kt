@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -34,20 +35,21 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
 import com.pingsama.puzzlequest.audio.AudioManager
 import com.pingsama.puzzlequest.game.GameEngine
 import com.pingsama.puzzlequest.game.LeaderboardManager
@@ -167,8 +169,7 @@ fun GameScreen(
                 }
             }
 
-            // ----- Flex spacer (top) -----
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(12.dp))
 
             // ----- 2. Pieces counter -----
             Text(
@@ -181,7 +182,7 @@ fun GameScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ----- 3. Puzzle board (centered) -----
+            // ----- 3. Puzzle board (fills the available square) -----
             PuzzleBoard(
                 gameState = gameState,
                 pieceBitmaps = levelImage?.pieces,
@@ -211,20 +212,21 @@ fun GameScreen(
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.weight(1f))
 
-            // ----- 4. Button row (directly under puzzle) -----
+            // ----- 5. Bottom button row -----
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PillButton(
-                    label = "Home",
-                    icon = "\uD83C\uDFE0", // 🏠
-                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                    label = "Hint",
+                    icon = "\uD83D\uDCA1", // 💡
+                    gradient = listOf(YellowWarm, OrangeWarm),
                     textColor = TextDark,
-                    onClick = onBackToMenu,
+                    onClick = { audio.playHint(); showHint = true },
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
@@ -239,18 +241,18 @@ fun GameScreen(
                     fontSize = 13,
                 )
                 PillButton(
-                    label = "Hint\n(Ad)",
-                    icon = "💡", // 💡
-                    gradient = listOf(YellowWarm, OrangeWarm),
+                    label = "Home",
+                    icon = "\uD83C\uDFE0", // 🏠
+                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
                     textColor = TextDark,
-                    onClick = { audio.playHint(); showHint = true },
+                    onClick = onBackToMenu,
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
                 )
                 PillButton(
-                    label = "More\n(Ad)",
-                    icon = "⏱", // ⏱
+                    label = "More Time",
+                    icon = "\u23F1", // ⏱
                     gradient = if (moreTimeUsed)
                         listOf(Color(0xFFEDEDED), Color(0xFFEDEDED))
                     else listOf(OrangeWarm, Coral),
@@ -268,10 +270,8 @@ fun GameScreen(
                 )
             }
 
-            // ----- Flex spacer (middle) -----
-            Spacer(Modifier.weight(1f))
-
-            // ----- Ad banner space -----
+            // ----- 6. Banner ad — only shown during gameplay -----
+            Spacer(Modifier.height(8.dp))
             BannerAd()
         }
 
@@ -321,6 +321,7 @@ fun GameScreen(
 // Overlays
 // ============================================================================
 
+@Composable
 @Composable
 private fun HintOverlay(image: ImageBitmap, onClose: () -> Unit) {
     Box(
@@ -536,22 +537,107 @@ private fun LosePopup(
     }
 }
 
+@Composable
+private fun RestartConfirmDialog(
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.fillMaxSize().background(Color(0x80000000)),
+        contentAlignment = Alignment.Center,
+    ) {
+        PopupCard(modifier = Modifier.fillMaxWidth(0.85f)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("\uD83D\uDD04", fontSize = 36.sp) // 🔄
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Restart Level?",
+                    color = TextDark,
+                    fontFamily = DisplayFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Your progress on this level will be reset.",
+                    color = TextMuted,
+                    fontFamily = BodyFamily,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(16.dp))
+                PillButton(
+                    label = "Yes, Restart",
+                    gradient = listOf(Coral, CoralLight),
+                    onClick = onConfirm,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 50,
+                    fontSize = 14,
+                )
+                Spacer(Modifier.height(8.dp))
+                PillButton(
+                    label = "No, Cancel",
+                    gradient = listOf(Color(0xFFE6E8EB), Color(0xFFD9DCE0)),
+                    textColor = TextDark,
+                    onClick = onCancel,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 50,
+                    fontSize = 14,
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Banner Ad
+// ============================================================================
+
 /**
- * Banner ad composable.
- * Displays a Google AdMob banner ad with proper lifecycle management.
+ * AdMob BANNER ad — renders a standard 320×50 banner using [AndroidView].
+ *
+ * ⚠️  The ad unit ID below is Google's PUBLIC TEST ID.
+ *     Replace it with your real banner ad unit ID from the AdMob dashboard
+ *     before publishing:
+ *       https://apps.admob.com → Apps → your app → Ad units → Banner → Ad unit ID
+ *
+ * The composable observes the Activity lifecycle so AdView.resume() / pause() /
+ * destroy() are called at the correct moments when the app is backgrounded or
+ * the composable leaves the tree.
  */
 @Composable
 private fun BannerAd(
-    adUnitId: String = "ca-app-pub-3940256099942544/6300978111", // test ID; swap before release
+    adUnitId: String = "ca-app-pub-3940256099942544/6300978111", // ← test ID; swap before release
 ) {
+    android.util.Log.d("ADMOB", "BannerAd composable reached")
+
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var adLoadFailed by remember { mutableStateOf(false) }
 
     // Build AdView once; remembered for the lifetime of this composable.
     val adView = remember {
+        android.util.Log.d("ADMOB", "Creating AdView")
         AdView(context).apply {
             setAdSize(AdSize.BANNER)
             this.adUnitId = adUnitId
+
+            // Set up AdListener to track load status
+            adListener = object : AdListener() {
+                override fun onAdLoaded() {
+                    android.util.Log.d("ADMOB", "Banner loaded successfully")
+                }
+
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    android.util.Log.e(
+                        "ADMOB",
+                        "Banner failed to load: code=\${error.code}, message=\${error.message}"
+                    )
+                    adLoadFailed = true
+                }
+            }
+
+            android.util.Log.d("ADMOB", "Loading banner ad with unit ID: $adUnitId")
             loadAd(AdRequest.Builder().build())
         }
     }
@@ -560,10 +646,22 @@ private fun BannerAd(
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME  -> adView.resume()
-                Lifecycle.Event.ON_PAUSE   -> adView.pause()
-                Lifecycle.Event.ON_DESTROY -> adView.destroy()
-                else                       -> Unit
+                Lifecycle.Event.ON_RESUME -> {
+                    android.util.Log.d("ADMOB", "AdView resumed")
+                    adView.resume()
+                }
+
+                Lifecycle.Event.ON_PAUSE -> {
+                    android.util.Log.d("ADMOB", "AdView paused")
+                    adView.pause()
+                }
+
+                Lifecycle.Event.ON_DESTROY -> {
+                    android.util.Log.d("ADMOB", "AdView destroyed")
+                    adView.destroy()
+                }
+
+                else -> Unit
             }
         }
         lifecycle.addObserver(observer)
@@ -573,8 +671,23 @@ private fun BannerAd(
         }
     }
 
-    AndroidView(
-        factory = { adView },
-        modifier = Modifier.fillMaxWidth(),
-    )
+    // Show fallback text if ad failed to load
+    if (adLoadFailed) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+                .background(Color.LightGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Ad failed to load", color = Color.Red, fontSize = 12.sp)
+        }
+    } else {
+        AndroidView(
+            factory = { adView },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+        )
+    }
 }
