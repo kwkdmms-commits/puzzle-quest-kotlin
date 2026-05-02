@@ -103,6 +103,7 @@ fun GameScreen(
     var timeRemaining by remember(currentLevel) { mutableIntStateOf(timeLimit) }
     var moreTimeUsed by remember(currentLevel) { mutableStateOf(false) }
     var hintUnlockedInLevel by remember(currentLevel) { mutableStateOf(false) }
+    var isAdShowing by remember { mutableStateOf(false) }
     var showHint by remember { mutableStateOf(false) }
     var showWin by remember(currentLevel) { mutableStateOf(false) }
     var showLose by remember(currentLevel) { mutableStateOf(false) }
@@ -121,17 +122,20 @@ fun GameScreen(
         levelStartTime = System.currentTimeMillis()
     }
 
-    // Countdown timer — runs only when no popup is showing.
+    // Countdown timer — runs only when no popup is showing and no ad is showing.
     // Also tracks total gameplay time for interstitial ad conditions
-    LaunchedEffect(currentLevel, showWin, showLose) {
+    LaunchedEffect(currentLevel, showWin, showLose, isAdShowing) {
         if (showWin || showLose) return@LaunchedEffect
         while (timeRemaining > 0) {
             delay(1000L)
-            timeRemaining -= 1
-            // Update gameplay time for interstitial ad tracking
-            InterstitialAdManager.updateGameplayTime(1000L)
+            // Only decrement timer if no ad is showing
+            if (!isAdShowing) {
+                timeRemaining -= 1
+                // Update gameplay time for interstitial ad tracking
+                InterstitialAdManager.updateGameplayTime(1000L)
+            }
         }
-        if (timeRemaining <= 0) showLose = true
+        if (timeRemaining <= 0 && !isAdShowing) showLose = true
     }
 
     // Helper: hard-reset the current level (used by Restart and the lose popup).
@@ -283,14 +287,17 @@ fun GameScreen(
                         } else {
                             // Show rewarded ad first, then unlock hint
                             if (activity != null) {
+                                isAdShowing = true
                                 RewardedAdManager.showRewardedAdIfReady(
                                     activity!!,
                                     onRewardEarned = {
+                                        isAdShowing = false
                                         hintUnlockedInLevel = true
                                         audio.playHint()
                                         showHint = true
                                     },
                                     onAdNotReady = {
+                                        isAdShowing = false
                                         Log.d("HINT", "Ad not ready, try again")
                                     }
                                 )
@@ -312,13 +319,16 @@ fun GameScreen(
                         if (!moreTimeUsed) {
                             // Show rewarded ad first, then add time
                             if (activity != null) {
+                                isAdShowing = true
                                 RewardedAdManager.showRewardedAdIfReady(
                                     activity!!,
                                     onRewardEarned = {
+                                        isAdShowing = false
                                         timeRemaining = (timeRemaining + 60).coerceAtMost(timeLimit + 300)
                                         moreTimeUsed = true
                                     },
                                     onAdNotReady = {
+                                        isAdShowing = false
                                         Log.d("MORE_TIME", "Ad not ready, try again")
                                     }
                                 )
@@ -357,7 +367,9 @@ fun GameScreen(
                     // Record screen change and check if interstitial should be shown
                     InterstitialAdManager.recordScreenChange()
                     if (InterstitialAdManager.shouldShowAd() && activity != null) {
+                        isAdShowing = true
                         InterstitialAdManager.showInterstitialIfReady(activity!!) {
+                            isAdShowing = false
                             onLevelComplete()
                         }
                     } else {
