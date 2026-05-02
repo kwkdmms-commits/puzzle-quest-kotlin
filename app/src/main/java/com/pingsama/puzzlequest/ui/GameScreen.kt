@@ -46,12 +46,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import android.app.Activity
+import android.util.Log
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
 import com.pingsama.puzzlequest.ads.InterstitialAdManager
+import com.pingsama.puzzlequest.ads.RewardedAdManager
 import com.pingsama.puzzlequest.audio.AudioManager
 import com.pingsama.puzzlequest.game.GameEngine
 import com.pingsama.puzzlequest.game.LeaderboardManager
@@ -113,6 +115,8 @@ fun GameScreen(
         leaderboard.saveCurrentLevel(currentLevel)
         // Preload interstitial when entering a new level
         activity?.let { InterstitialAdManager.preloadInterstitial(it) }
+        // Preload rewarded ad for Hint and More Time
+        activity?.let { RewardedAdManager.preloadRewardedAd(it) }
         levelStartTime = System.currentTimeMillis()
     }
 
@@ -265,17 +269,31 @@ fun GameScreen(
                     fontSize = 13,
                 )
                 PillButton(
-                    label = "Hint",
+                    label = "Hint\n(Ad)",
                     icon = "\uD83D\uDCA1", // 💡
                     gradient = listOf(YellowWarm, OrangeWarm),
                     textColor = TextDark,
-                    onClick = { audio.playHint(); showHint = true },
+                    onClick = {
+                        // Show rewarded ad first, then hint
+                        if (activity != null) {
+                            RewardedAdManager.showRewardedAdIfReady(
+                                activity!!,
+                                onRewardEarned = {
+                                    audio.playHint()
+                                    showHint = true
+                                },
+                                onAdNotReady = {
+                                    Log.d("HINT", "Ad not ready, try again")
+                                }
+                            )
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                     height = 64,
                     fontSize = 13,
                 )
                 PillButton(
-                    label = "More Time",
+                    label = "More Time\n(Ad)",
                     icon = "\u23F1", // ⏱
                     gradient = if (moreTimeUsed)
                         listOf(Color(0xFFEDEDED), Color(0xFFEDEDED))
@@ -283,8 +301,19 @@ fun GameScreen(
                     textColor = TextDark,
                     onClick = {
                         if (!moreTimeUsed) {
-                            timeRemaining = (timeRemaining + 60).coerceAtMost(timeLimit + 300)
-                            moreTimeUsed = true
+                            // Show rewarded ad first, then add time
+                            if (activity != null) {
+                                RewardedAdManager.showRewardedAdIfReady(
+                                    activity!!,
+                                    onRewardEarned = {
+                                        timeRemaining = (timeRemaining + 60).coerceAtMost(timeLimit + 300)
+                                        moreTimeUsed = true
+                                    },
+                                    onAdNotReady = {
+                                        Log.d("MORE_TIME", "Ad not ready, try again")
+                                    }
+                                )
+                            }
                         }
                     },
                     enabled = !moreTimeUsed,
