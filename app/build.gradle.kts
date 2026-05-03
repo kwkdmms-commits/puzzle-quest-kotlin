@@ -11,8 +11,8 @@ android {
         applicationId = "com.pingsama.puzzlequest"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 100
+        versionName = "1.0.0"
 
         vectorDrawables { useSupportLibrary = true }
     }

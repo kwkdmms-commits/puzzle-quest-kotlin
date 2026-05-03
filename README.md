@@ -13,10 +13,11 @@ A drag-and-drop image puzzle:
 - Levels 1–4, 6–9, 11–14, 16–19, 21–24 use a **4×4** grid (16 pieces).
 - Levels **5, 10, 15, 20, 25** use a **6×6** grid (36 pieces) — these are the "challenge" levels.
 - Pieces are shuffled until none start in their correct spot. Drop a piece on its correct cell to **snap + lock** it (cyan glow). Drop anywhere else to **swap** with whatever's there.
-- **Time limit:** 2:30 for 4×4, 4:00 for 6×6.
-- **Hint** shows the full image. **More Time** adds 60 s (once per level). **Restart** confirms before resetting.
+- **Time limit:** 1:30 for 4×4, 2:30 for 6×6.
+- **Hint** shows the full image (requires watching a rewarded ad once per level). **More Time** adds 60 s (once per level, requires rewarded ad). **Restart** confirms before resetting.
 - Sound effects are **synthesized at runtime** via `AudioTrack` PCM — same waveform shapes as the original Web Audio code.
 - Progress (current level, total puzzles solved, best moves & best time per grid size) is persisted in `SharedPreferences`, included in Android Auto Backup.
+- **Ads:** Banner ads at bottom, interstitial ads between levels, rewarded ads for power-ups.
 
 ---
 
@@ -33,6 +34,10 @@ PuzzleQuest/
 │       ├── java/com/pingsama/puzzlequest/
 │       │   ├── MainActivity.kt           ← Compose host + menu/game routing
 │       │   ├── PuzzleQuestApp.kt         ← Application class, owns Audio + Leaderboard singletons
+│       │   ├── ads/
+│       │   │   ├── BannerAdManager.kt    ← Banner ad management
+│       │   │   ├── InterstitialAdManager.kt ← Interstitial ad management
+│       │   │   └── RewardedAdManager.kt  ← Rewarded ad management
 │       │   ├── audio/
 │       │   │   └── AudioManager.kt       ← PCM synthesis for the 5 SFX
 │       │   ├── game/
@@ -45,12 +50,15 @@ PuzzleQuest/
 │       │       ├── LevelImage.kt         ← Loads + slices the level WebP
 │       │       ├── MainMenuScreen.kt
 │       │       ├── PuzzleBoard.kt        ← Drag-and-drop grid (the heart of the game)
-│       │       └── GameScreen.kt         ← Header, board, buttons, popups
+│       │       └── GameScreen.kt         ← Header, board, buttons, popups, ads
 │       └── res/
 │           ├── values/                   ← strings, colors, themes, ic_launcher_background
 │           ├── mipmap-anydpi-v26/        ← Adaptive launcher icon
 │           ├── drawable/                 ← Vector launcher foreground
 │           └── xml/                      ← Backup rules
+├── .github/workflows/
+│   ├── build.yml                         ← Debug build on push
+│   └── release-build.yml                 ← Release build on tag push
 ├── build.gradle.kts                      ← Top-level
 ├── settings.gradle.kts                   ← Project name + module include
 ├── gradle/wrapper/                       ← gradle-wrapper.jar + properties (Gradle 8.14.3)
@@ -86,22 +94,13 @@ cd PuzzleQuest
 For a release APK:
 
 ```sh
-./gradlew assembleRelease
+./gradlew assembleRelease                 # Builds app/build/outputs/apk/release/app-release.apk
 ```
-
-Note: the release config currently signs with the **debug keystore** so the build succeeds out of the box. **Before publishing to Play Store**, generate a real keystore:
-
-```sh
-keytool -genkey -v -keystore puzzle-quest-release.jks \
-        -keyalg RSA -keysize 2048 -validity 10000 -alias puzzle-quest
-```
-
-Then add a `signingConfigs` block to `app/build.gradle.kts` and reference it from `release { signingConfig = ... }`.
 
 For Play Store submission, use the **Android App Bundle** instead of an APK:
 
 ```sh
-./gradlew bundleRelease   # produces app/build/outputs/bundle/release/app-release.aab
+./gradlew bundleRelease                   # Produces app/build/outputs/bundle/release/app-release.aab
 ```
 
 ---
@@ -123,14 +122,33 @@ The original web app used **Fredoka** (display) and **Poppins** (body). To keep 
 
 ### Ads
 
-The original had AdMob banner + interstitials. This port does **not** include ad SDKs. To add them later:
+This port includes **AdMob integration** with test ad unit IDs:
 
-1. Add `implementation("com.google.android.gms:play-services-ads:23.x")` to `app/build.gradle.kts`.
-2. Initialize in `PuzzleQuestApp.onCreate`.
-3. Wire banner views in via `AndroidView` inside `GameScreen.kt`.
-4. Show interstitials between levels in the `onLevelComplete` callback.
+- **Banner Ads:** Bottom of game screen (60dp reserved space)
+- **Interstitial Ads:** Between levels (after 2 min gameplay or 3 screen changes)
+- **Rewarded Ads:** For Hint and More Time buttons
 
-The codebase deliberately keeps `GameScreen` decoupled from any ad logic so this is a clean addition.
+**Current Configuration (Test Ads):**
+- AdMob App ID: `ca-app-pub-3940256099942544~3347511713` (Google test ID)
+- Banner: `ca-app-pub-3940256099942544/6300978111` (Google test ID)
+- Interstitial: `ca-app-pub-3940256099942544/1033173712` (Google test ID)
+- Rewarded: `ca-app-pub-3940256099942544/5224354917` (Google test ID)
+
+**Before Publishing to Play Store:**
+
+1. Replace test ad unit IDs with your real AdMob ad unit IDs:
+   - Update `BannerAd()` in `GameScreen.kt` (search for `ca-app-pub-3940256099942544/6300978111`)
+   - Update `InterstitialAdManager.kt` (search for `ca-app-pub-3940256099942544/1033173712`)
+   - Update `RewardedAdManager.kt` (search for `ca-app-pub-3940256099942544/5224354917`)
+
+2. Update AdMob App ID in `AndroidManifest.xml`:
+   ```xml
+   <meta-data
+       android:name="com.google.android.gms.ads.APPLICATION_ID"
+       android:value="ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy" />
+   ```
+
+3. Test with real ads on internal test track first.
 
 ### Image quality
 
@@ -138,11 +156,91 @@ The 25 puzzle images were re-encoded from 2048×2048 PNGs (totaling 110 MB) to 1
 
 ---
 
+## GitHub Release & Play Store Publishing
+
+### Automated Release Builds
+
+A GitHub Actions workflow (`release-build.yml`) automatically builds release APK and AAB on:
+
+1. **Tag push:** Push a tag like `v1.0.0` to trigger a release build
+   ```sh
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. **Manual workflow dispatch:** Run the workflow manually from the Actions tab
+
+### Download Release Artifacts
+
+1. Go to **Actions** tab on GitHub
+2. Click the latest **Release Build** workflow run
+3. Download artifacts:
+   - `puzzle-quest-release-apk` — Unsigned release APK (for direct installation)
+   - `puzzle-quest-release-aab` — Android App Bundle (for Play Store submission)
+
+### Play Store Secrets Setup (Optional)
+
+To enable automatic Play Store uploads:
+
+1. Generate a **Play Store service account JSON** from Google Play Console
+2. Add it as a GitHub secret: `PLAY_STORE_SERVICE_ACCOUNT_JSON`
+3. Uncomment the "Upload to Play Store" step in `.github/workflows/release-build.yml`
+
+### Signing Configuration
+
+**Current:** Release builds sign with the debug keystore (unsigned for distribution).
+
+**For Production:**
+
+1. Generate a release keystore:
+   ```sh
+   keytool -genkey -v -keystore puzzle-quest-release.jks \
+           -keyalg RSA -keysize 2048 -validity 10000 -alias puzzle-quest
+   ```
+
+2. Add to `app/build.gradle.kts`:
+   ```kotlin
+   signingConfigs {
+       create("release") {
+           storeFile = file("../puzzle-quest-release.jks")
+           storePassword = System.getenv("KEYSTORE_PASSWORD")
+           keyAlias = "puzzle-quest"
+           keyPassword = System.getenv("KEY_PASSWORD")
+       }
+   }
+   
+   buildTypes {
+       release {
+           signingConfig = signingConfigs.getByName("release")
+       }
+   }
+   ```
+
+3. Add secrets to GitHub:
+   - `KEYSTORE_PASSWORD` — Your keystore password
+   - `KEY_PASSWORD` — Your key password
+
+### Version Management
+
+Update version in `app/build.gradle.kts`:
+
+```kotlin
+defaultConfig {
+    versionCode = 100      // Increment for each release
+    versionName = "1.0.0"  // Semantic versioning
+}
+```
+
+**Current Version:** 1.0.0 (versionCode: 100)
+
+---
+
 ## Differences from the web original (intentional)
 
 1. **Best Time meaning fixed.** The original stored "remaining time" then reported `min(remaining)` as the best time, which was inverted — it actually showed the *worst* time. This port stores **time used** and reports `min(time_used)`, which is what players expect.
-2. **Pill buttons instead of round icon buttons.** The reference screenshot you provided showed pill-shaped buttons with text labels (Hint / Restart / Home / etc.), so I matched that. The original V2 web code used circular emoji-only buttons in the same positions.
-3. **No ad SDK, no analytics, no debug-collector script.** Everything is offline-first.
+2. **Pill buttons instead of round icon buttons.** The reference screenshot showed pill-shaped buttons with text labels (Hint / Restart / Home / etc.), so I matched that. The original V2 web code used circular emoji-only buttons in the same positions.
+3. **Rewarded ads for power-ups.** Hint and More Time now require watching a rewarded ad, with smart unlock logic (hint unlocks once per level after watching ad).
+4. **Timer pauses during ads.** The puzzle timer pauses when any full-screen ad (rewarded or interstitial) is showing, preventing unfair time loss.
 
 Everything else — game logic, level progression, time limits, the snap-and-lock behavior, the win/lose/restart flows, sound design — is a faithful port.
 
