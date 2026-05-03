@@ -17,8 +17,8 @@ import com.google.android.gms.ads.MobileAds
 object AdManager {
     private const val TAG = "AdManager"
     
-    // Google test banner ad unit ID (use this for development)
-    private const val TEST_BANNER_AD_UNIT_ID = "ca-app-pub-4699326641068010/2797397808"
+    // Google test banner ad unit ID (official Google test ID for development)
+    private const val TEST_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111"
     
     // Track if ads are available
     private var adsAvailable = false
@@ -55,7 +55,7 @@ object AdManager {
             
             val adRequest = AdRequest.Builder().build()
             adView.loadAd(adRequest)
-            Log.d(TAG, "Banner ad load requested")
+            Log.d(TAG, "Banner ad load requested with unit ID: ${adView.adUnitId}")
         } catch (e: Throwable) {
             // Catch all exceptions including runtime errors
             Log.e(TAG, "Failed to load banner ad: ${e.message}", e)

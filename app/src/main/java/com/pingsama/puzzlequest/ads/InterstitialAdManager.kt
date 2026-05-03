@@ -18,7 +18,8 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
  */
 object InterstitialAdManager {
     private const val TAG = "INTERSTITIAL"
-    private const val TEST_AD_UNIT_ID = "ca-app-pub-4699326641068010/9947153726"
+    // Google test interstitial ad unit ID (official Google test ID for development)
+    private const val TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
     private const val TIME_THRESHOLD_MS = 2 * 60 * 1000 // 2 minutes
     private const val SCREEN_CHANGE_THRESHOLD = 3
 
@@ -36,7 +37,7 @@ object InterstitialAdManager {
         if (isLoading || interstitialAd != null) return
 
         isLoading = true
-        Log.d(TAG, "INTERSTITIAL_LOADING")
+        Log.d(TAG, "INTERSTITIAL_LOADING with unit ID: $TEST_AD_UNIT_ID")
 
         val adRequest = AdRequest.Builder().build()
 
@@ -49,14 +50,37 @@ object InterstitialAdManager {
                     super.onAdLoaded(ad)
                     interstitialAd = ad
                     isLoading = false
-                    Log.d(TAG, "INTERSTITIAL_LOADED")
+                    Log.d(TAG, "INTERSTITIAL_LOADED successfully")
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     super.onAdFailedToLoad(adError)
                     interstitialAd = null
                     isLoading = false
-                    Log.e(TAG, "INTERSTITIAL_FAILED: ${adError.message}")
+                    
+                    // Log comprehensive error details
+                    Log.e(TAG, "INTERSTITIAL_FAILED_TO_LOAD")
+                    Log.e(TAG, "  Error Code: ${adError.code}")
+                    Log.e(TAG, "  Error Domain: ${adError.domain}")
+                    Log.e(TAG, "  Error Message: ${adError.message}")
+                    
+                    // Log response info if available
+                    val responseInfo = adError.responseInfo
+                    if (responseInfo != null) {
+                        Log.e(TAG, "  Response Info: ${responseInfo.toString()}")
+                        Log.e(TAG, "  Mediation Adapter Class Name: ${responseInfo.mediationAdapterClassName}")
+                        Log.e(TAG, "  Adapter Responses:")
+                        responseInfo.adapterResponses.forEachIndexed { index, response ->
+                            Log.e(TAG, "    [$index] Adapter: ${response.adapterClassName}")
+                            Log.e(TAG, "    [$index] Latency: ${response.latencyMillis}ms")
+                            Log.e(TAG, "    [$index] Ad Source ID: ${response.adSourceId}")
+                            Log.e(TAG, "    [$index] Ad Source Instance ID: ${response.adSourceInstanceId}")
+                            Log.e(TAG, "    [$index] Ad Source Instance Name: ${response.adSourceInstanceName}")
+                            Log.e(TAG, "    [$index] Ad Source Name: ${response.adSourceName}")
+                        }
+                    } else {
+                        Log.e(TAG, "  Response Info: null")
+                    }
                 }
             }
         )
@@ -103,7 +127,10 @@ object InterstitialAdManager {
             }
 
             override fun onAdFailedToShowFullScreenContent(adError: com.google.android.gms.ads.AdError) {
-                Log.e(TAG, "INTERSTITIAL_FAILED_TO_SHOW: ${adError.message}")
+                Log.e(TAG, "INTERSTITIAL_FAILED_TO_SHOW")
+                Log.e(TAG, "  Error Code: ${adError.code}")
+                Log.e(TAG, "  Error Domain: ${adError.domain}")
+                Log.e(TAG, "  Error Message: ${adError.message}")
                 interstitialAd = null
                 resetCounters()
                 onAdDismissed()

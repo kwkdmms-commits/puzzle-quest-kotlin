@@ -641,7 +641,7 @@ private fun LosePopup(
  */
 @Composable
 private fun BannerAd(
-    adUnitId: String = "ca-app-pub-4699326641068010/2797397808", // Real banner ad unit ID
+    adUnitId: String = "ca-app-pub-3940256099942544/6300978111", // Google test banner ad unit ID
     modifier: Modifier = Modifier,
 ) {
     android.util.Log.d("ADMOB", "BannerAd composable reached")
@@ -649,6 +649,7 @@ private fun BannerAd(
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var adLoadFailed by remember { mutableStateOf(false) }
+    var errorDetails by remember { mutableStateOf("") }
 
     // Build AdView once; remembered for the lifetime of this composable.
     val adView = remember {
@@ -664,10 +665,32 @@ private fun BannerAd(
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
-                    android.util.Log.e(
-                        "ADMOB",
-                        "Banner failed to load: code=\${error.code}, message=\${error.message}"
-                    )
+                    // Log comprehensive error details
+                    android.util.Log.e("ADMOB", "BANNER_FAILED_TO_LOAD")
+                    android.util.Log.e("ADMOB", "  Error Code: ${error.code}")
+                    android.util.Log.e("ADMOB", "  Error Domain: ${error.domain}")
+                    android.util.Log.e("ADMOB", "  Error Message: ${error.message}")
+                    
+                    // Log response info if available
+                    val responseInfo = error.responseInfo
+                    if (responseInfo != null) {
+                        android.util.Log.e("ADMOB", "  Response Info: ${responseInfo.toString()}")
+                        android.util.Log.e("ADMOB", "  Mediation Adapter Class Name: ${responseInfo.mediationAdapterClassName}")
+                        android.util.Log.e("ADMOB", "  Adapter Responses:")
+                        responseInfo.adapterResponses.forEachIndexed { index, response ->
+                            android.util.Log.e("ADMOB", "    [\$index] Adapter: ${response.adapterClassName}")
+                            android.util.Log.e("ADMOB", "    [\$index] Latency: ${response.latencyMillis}ms")
+                            android.util.Log.e("ADMOB", "    [\$index] Ad Source ID: ${response.adSourceId}")
+                            android.util.Log.e("ADMOB", "    [\$index] Ad Source Instance ID: ${response.adSourceInstanceId}")
+                            android.util.Log.e("ADMOB", "    [\$index] Ad Source Instance Name: ${response.adSourceInstanceName}")
+                            android.util.Log.e("ADMOB", "    [\$index] Ad Source Name: ${response.adSourceName}")
+                        }
+                    } else {
+                        android.util.Log.e("ADMOB", "  Response Info: null")
+                    }
+                    
+                    // Store error details for UI display
+                    errorDetails = "Code: ${error.code}\nDomain: ${error.domain}\nMsg: ${error.message}"
                     adLoadFailed = true
                 }
             }
@@ -715,7 +738,13 @@ private fun BannerAd(
                 .background(Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
-            Text("Ad failed to load", color = Color.Red, fontSize = 12.sp)
+            Text(
+                text = if (errorDetails.isNotEmpty()) errorDetails else "Ad failed to load",
+                color = Color.Red,
+                fontSize = 10.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(4.dp)
+            )
         }
     } else {
         AndroidView(
