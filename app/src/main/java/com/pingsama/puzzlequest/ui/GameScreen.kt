@@ -52,6 +52,7 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
+import com.pingsama.puzzlequest.ads.BannerAdManager
 import com.pingsama.puzzlequest.ads.InterstitialAdManager
 import com.pingsama.puzzlequest.ads.RewardedAdManager
 import com.pingsama.puzzlequest.audio.AudioManager
@@ -641,62 +642,20 @@ private fun LosePopup(
  */
 @Composable
 private fun BannerAd(
-    adUnitId: String = "ca-app-pub-3940256099942544/6300978111", // Google test banner ad unit ID
     modifier: Modifier = Modifier,
 ) {
-    android.util.Log.d("ADMOB", "BannerAd composable reached")
+    android.util.Log.d("BannerAdManager", "BannerAd composable reached")
 
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    var adLoadFailed by remember { mutableStateOf(false) }
-    var errorDetails by remember { mutableStateOf("") }
 
     // Build AdView once; remembered for the lifetime of this composable.
     val adView = remember {
-        android.util.Log.d("ADMOB", "Creating AdView")
+        android.util.Log.d("BannerAdManager", "Creating AdView")
         AdView(context).apply {
             setAdSize(AdSize.BANNER)
-            this.adUnitId = adUnitId
-
-            // Set up AdListener to track load status
-            adListener = object : AdListener() {
-                override fun onAdLoaded() {
-                    android.util.Log.d("ADMOB", "Banner loaded successfully")
-                }
-
-                override fun onAdFailedToLoad(error: LoadAdError) {
-                    // Log comprehensive error details
-                    android.util.Log.e("ADMOB", "BANNER_FAILED_TO_LOAD")
-                    android.util.Log.e("ADMOB", "  Error Code: ${error.code}")
-                    android.util.Log.e("ADMOB", "  Error Domain: ${error.domain}")
-                    android.util.Log.e("ADMOB", "  Error Message: ${error.message}")
-                    
-                    // Log response info if available
-                    val responseInfo = error.responseInfo
-                    if (responseInfo != null) {
-                        android.util.Log.e("ADMOB", "  Response Info: ${responseInfo.toString()}")
-                        android.util.Log.e("ADMOB", "  Mediation Adapter Class Name: ${responseInfo.mediationAdapterClassName}")
-                        android.util.Log.e("ADMOB", "  Adapter Responses:")
-                        responseInfo.adapterResponses.forEachIndexed { index, response ->
-                            android.util.Log.e("ADMOB", "    [\$index] Adapter: ${response.adapterClassName}")
-                            android.util.Log.e("ADMOB", "    [\$index] Latency: ${response.latencyMillis}ms")
-                            android.util.Log.e("ADMOB", "    [\$index] Ad Source ID: ${response.adSourceId}")
-                            android.util.Log.e("ADMOB", "    [\$index] Ad Source Instance ID: ${response.adSourceInstanceId}")
-                            android.util.Log.e("ADMOB", "    [\$index] Ad Source Instance Name: ${response.adSourceInstanceName}")
-                            android.util.Log.e("ADMOB", "    [\$index] Ad Source Name: ${response.adSourceName}")
-                        }
-                    } else {
-                        android.util.Log.e("ADMOB", "  Response Info: null")
-                    }
-                    
-                    // Store error details for UI display
-                    errorDetails = "Code: ${error.code}\nDomain: ${error.domain}\nMsg: ${error.message}"
-                    adLoadFailed = true
-                }
-            }
-
-            android.util.Log.d("ADMOB", "Loading banner ad with unit ID: $adUnitId")
-            loadAd(AdRequest.Builder().build())
+            // Start delayed load with retry logic
+            BannerAdManager.startLoadingBanner(this)
         }
     }
 
@@ -705,18 +664,19 @@ private fun BannerAd(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
-                    android.util.Log.d("ADMOB", "AdView resumed")
+                    android.util.Log.d("BannerAdManager", "AdView resumed")
                     adView.resume()
                 }
 
                 Lifecycle.Event.ON_PAUSE -> {
-                    android.util.Log.d("ADMOB", "AdView paused")
+                    android.util.Log.d("BannerAdManager", "AdView paused")
                     adView.pause()
                 }
 
                 Lifecycle.Event.ON_DESTROY -> {
-                    android.util.Log.d("ADMOB", "AdView destroyed")
+                    android.util.Log.d("BannerAdManager", "AdView destroyed")
                     adView.destroy()
+                    BannerAdManager.cleanup(adView)
                 }
 
                 else -> Unit
@@ -726,32 +686,16 @@ private fun BannerAd(
         onDispose {
             lifecycle.removeObserver(observer)
             adView.destroy()
+            BannerAdManager.cleanup(adView)
         }
     }
 
-    // Show fallback text if ad failed to load
-    if (adLoadFailed) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
-                .background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = if (errorDetails.isNotEmpty()) errorDetails else "Ad failed to load",
-                color = Color.Red,
-                fontSize = 10.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(4.dp)
-            )
-        }
-    } else {
-        AndroidView(
-            factory = { adView },
-            modifier = modifier
-                .fillMaxWidth()
-                .height(60.dp),
-        )
-    }
+    // Always show AdView - no error messages to players
+    // If ad fails to load, the banner area will just be empty
+    AndroidView(
+        factory = { adView },
+        modifier = modifier
+            .fillMaxWidth()
+            .height(60.dp),
+    )
 }
