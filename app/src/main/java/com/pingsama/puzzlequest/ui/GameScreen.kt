@@ -641,7 +641,7 @@ private fun LosePopup(
  */
 @Composable
 private fun BannerAd(
-    adUnitId: String = "ca-app-pub-3940256099942544/6300978111", // ← test ID; swap before release
+    adUnitId: String = "ca-app-pub-4699326641068010/2797397808", // Real banner ad unit ID
     modifier: Modifier = Modifier,
 ) {
     android.util.Log.d("ADMOB", "BannerAd composable reached")

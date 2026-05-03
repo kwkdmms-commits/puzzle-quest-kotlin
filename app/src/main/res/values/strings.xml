@@ -4,7 +4,7 @@
     <string name="tagline">Match the pieces. Complete the puzzle.</string>
     <string name="play_level">▶  Play - Level %1$d</string>
     <string name="quit">Quit</string>
-    <string name="footer">25 levels of puzzle fun</string>
+    <string name="footer">50+ levels of puzzle fun</string>
     <string name="level_label">Level %1$d</string>
     <string name="moves_label">Moves: %1$d</string>
     <string name="pieces_placed">%1$d / %2$d Pieces Placed</string>

@@ -102,7 +102,7 @@ fun MainMenuScreen(
         }
 
         Text(
-            text = "25 levels of puzzle fun",
+            text = "50+ levels of puzzle fun",
             style = TextStyle(
                 fontFamily = BodyFamily,
                 fontSize = 12.sp,

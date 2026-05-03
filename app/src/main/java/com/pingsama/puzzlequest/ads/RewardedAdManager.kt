@@ -21,7 +21,7 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
  */
 object RewardedAdManager {
     private const val TAG = "REWARDED"
-    private const val TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
+    private const val TEST_AD_UNIT_ID = "ca-app-pub-4699326641068010/2222682733"
 
     private var rewardedAd: RewardedAd? = null
     private var isLoading = false

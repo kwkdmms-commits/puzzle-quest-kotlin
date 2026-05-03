@@ -18,7 +18,7 @@ object AdManager {
     private const val TAG = "AdManager"
     
     // Google test banner ad unit ID (use this for development)
-    private const val TEST_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111"
+    private const val TEST_BANNER_AD_UNIT_ID = "ca-app-pub-4699326641068010/2797397808"
     
     // Track if ads are available
     private var adsAvailable = false
