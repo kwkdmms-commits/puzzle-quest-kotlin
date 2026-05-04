@@ -21,8 +21,8 @@ import com.google.android.gms.ads.AdListener
 object BannerAdManager {
     private const val TAG = "BannerAdManager"
     
-    // Google test banner ad unit ID
-    private const val TEST_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111"
+    // Production banner ad unit ID
+    private const val BANNER_AD_UNIT_ID = "ca-app-pub-4699326641068010/2797397808"
     
     // Timing constants (in milliseconds)
     private const val INITIAL_DELAY_MS = 2000L      // 2 seconds before first load
@@ -168,5 +168,5 @@ object BannerAdManager {
     /**
      * Get the banner ad unit ID.
      */
-    fun getBannerAdUnitId(): String = TEST_BANNER_AD_UNIT_ID
+    fun getBannerAdUnitId(): String = BANNER_AD_UNIT_ID
 }

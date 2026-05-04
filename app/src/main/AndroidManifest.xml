@@ -18,15 +18,10 @@
         android:theme="@style/Theme.PuzzleQuest.Splash"
         tools:targetApi="34">
 
-        <!--
-            AdMob App ID.
-            ⚠️  The value below is Google's PUBLIC TEST App ID — safe for development.
-            Before publishing, replace it with YOUR real App ID from the AdMob dashboard:
-            https://apps.admob.com → Apps → your app → App settings → App ID
-        -->
+        <!-- AdMob App ID (Production) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-4699326641068010~7352779976" />
 
         <activity
             android:name=".MainActivity"

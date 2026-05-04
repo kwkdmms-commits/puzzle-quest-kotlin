@@ -18,8 +18,8 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
  */
 object InterstitialAdManager {
     private const val TAG = "INTERSTITIAL"
-    // Google test interstitial ad unit ID (official Google test ID for development)
-    private const val TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
+    // Production interstitial ad unit ID
+    private const val AD_UNIT_ID = "ca-app-pub-4699326641068010/9947153726"
     private const val TIME_THRESHOLD_MS = 2 * 60 * 1000 // 2 minutes
     private const val SCREEN_CHANGE_THRESHOLD = 3
 
@@ -37,13 +37,13 @@ object InterstitialAdManager {
         if (isLoading || interstitialAd != null) return
 
         isLoading = true
-        Log.d(TAG, "INTERSTITIAL_LOADING with unit ID: $TEST_AD_UNIT_ID")
+        Log.d(TAG, "INTERSTITIAL_LOADING with unit ID: $AD_UNIT_ID")
 
         val adRequest = AdRequest.Builder().build()
 
         InterstitialAd.load(
             activity,
-            TEST_AD_UNIT_ID,
+            AD_UNIT_ID,
             adRequest,
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {

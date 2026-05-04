@@ -21,8 +21,8 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
  */
 object RewardedAdManager {
     private const val TAG = "REWARDED"
-    // Google test rewarded ad unit ID (official Google test ID for development)
-    private const val TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
+    // Production rewarded ad unit ID
+    private const val AD_UNIT_ID = "ca-app-pub-4699326641068010/2222682733"
 
     private var rewardedAd: RewardedAd? = null
     private var isLoading = false
@@ -35,13 +35,13 @@ object RewardedAdManager {
         if (isLoading || rewardedAd != null) return
 
         isLoading = true
-        Log.d(TAG, "REWARDED_LOADING with unit ID: $TEST_AD_UNIT_ID")
+        Log.d(TAG, "REWARDED_LOADING with unit ID: $AD_UNIT_ID")
 
         val adRequest = AdRequest.Builder().build()
 
         RewardedAd.load(
             activity,
-            TEST_AD_UNIT_ID,
+            AD_UNIT_ID,
             adRequest,
             object : RewardedAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedAd) {
