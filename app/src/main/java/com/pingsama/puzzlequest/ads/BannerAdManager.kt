@@ -21,7 +21,7 @@ import com.google.android.gms.ads.AdListener
 object BannerAdManager {
     private const val TAG = "BannerAdManager"
     
-    // Production banner ad unit ID
+    // Production banner ad unit ID (set in GameScreen composable)
     private const val BANNER_AD_UNIT_ID = "ca-app-pub-4699326641068010/2797397808"
     
     // Timing constants (in milliseconds)
@@ -59,9 +59,6 @@ object BannerAdManager {
             
             // Set up the ad listener
             adView.adListener = createAdListener(adView)
-            
-            // Set ad unit ID
-            adView.adUnitId = BANNER_AD_UNIT_ID
             
             // Schedule initial load after 2 seconds
             if (!state.loadScheduled) {

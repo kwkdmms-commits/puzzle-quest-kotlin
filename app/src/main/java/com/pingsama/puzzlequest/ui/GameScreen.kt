@@ -648,16 +648,32 @@ private fun BannerAd(
 
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val displayMetrics = context.resources.displayMetrics
+    
+    // Calculate adaptive banner size based on screen width
+    val adWidthPixels = displayMetrics.widthPixels
+    val adWidthDp = (adWidthPixels / displayMetrics.density).toInt()
+    
+    android.util.Log.d("BannerAdManager", "Screen width: ${adWidthPixels}px = ${adWidthDp}dp")
 
     // Build AdView once; remembered for the lifetime of this composable.
     val adView = remember {
-        android.util.Log.d("BannerAdManager", "Creating AdView")
+        android.util.Log.d("BannerAdManager", "Creating AdView with width=$adWidthDp")
         AdView(context).apply {
-            // Use adaptive banner size - automatically scales based on screen width
-            setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, 320))
-            // Start delayed load with retry logic
-            BannerAdManager.startLoadingBanner(this)
+            // Set ad unit ID first
+            adUnitId = "ca-app-pub-4699326641068010/2797397808"
+            
+            // Calculate and set adaptive banner size
+            val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, adWidthDp)
+            setAdSize(adSize)
+            android.util.Log.d("BannerAdManager", "AdSize set: width=${adSize.width}, height=${adSize.height}")
         }
+    }
+    
+    // Load banner AFTER composable is displayed (not in init)
+    LaunchedEffect(Unit) {
+        android.util.Log.d("BannerAdManager", "LaunchedEffect: Starting banner load")
+        BannerAdManager.startLoadingBanner(adView)
     }
 
     // Mirror lifecycle events so AdMob can manage network requests correctly.
@@ -691,12 +707,13 @@ private fun BannerAd(
         }
     }
 
-    // Always show AdView - no error messages to players
-    // If ad fails to load, the banner area will just be empty
+    // AndroidView with proper sizing
+    // Width: MATCH_PARENT (fillMaxWidth)
+    // Height: Up to 90dp for adaptive banner (will be smaller if ad is smaller)
     AndroidView(
         factory = { adView },
         modifier = modifier
             .fillMaxWidth()
-            .height(50.dp),  // Adaptive banner height (typically 50-90 dp depending on device)
+            .height(90.dp),
     )
 }
