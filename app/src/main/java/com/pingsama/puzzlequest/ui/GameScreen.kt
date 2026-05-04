@@ -644,58 +644,59 @@ private fun LosePopup(
 private fun BannerAd(
     modifier: Modifier = Modifier,
 ) {
-    android.util.Log.d("BannerAdManager", "BannerAd composable reached")
-
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val displayMetrics = context.resources.displayMetrics
     
-    // Calculate adaptive banner size based on screen width
-    val adWidthPixels = displayMetrics.widthPixels
-    val adWidthDp = (adWidthPixels / displayMetrics.density).toInt()
-    
-    android.util.Log.d("BannerAdManager", "Screen width: ${adWidthPixels}px = ${adWidthDp}dp")
+    // State for banner display
+    var bannerStatus by remember { mutableStateOf("Loading...") }
+    var bannerError by remember { mutableStateOf<Triple<Int, String, String>?>(null) }
+    var showBanner by remember { mutableStateOf(false) }
 
-    // Build AdView once; remembered for the lifetime of this composable.
+    // Create ONE AdView instance and configure it
     val adView = remember {
-        android.util.Log.d("BannerAdManager", "Creating AdView with width=$adWidthDp")
         AdView(context).apply {
-            // Set ad unit ID first - TEMPORARILY using Google TEST ID for diagnosis
-            adUnitId = "ca-app-pub-3940256099942544/6300978111"
+            adUnitId = "ca-app-pub-3940256099942544/6300978111"  // TEST ID
             
-            // Calculate and set adaptive banner size
+            // Calculate adaptive banner size
+            val displayMetrics = context.resources.displayMetrics
+            val adWidthPixels = displayMetrics.widthPixels
+            val adWidthDp = (adWidthPixels / displayMetrics.density).toInt()
             val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, adWidthDp)
             setAdSize(adSize)
-            android.util.Log.d("BannerAdManager", "AdSize set: width=${adSize.width}, height=${adSize.height}")
+            
+            // Set direct AdListener to capture real AdMob errors
+            adListener = object : com.google.android.gms.ads.AdListener() {
+                override fun onAdLoaded() {
+                    android.util.Log.d("BannerAd", "onAdLoaded")
+                    bannerStatus = "Banner loaded"
+                    bannerError = null
+                    showBanner = true
+                }
+                
+                override fun onAdFailedToLoad(error: com.google.android.gms.ads.LoadAdError) {
+                    android.util.Log.e("BannerAd", "onAdFailedToLoad: code=${error.code}, domain=${error.domain}, message=${error.message}")
+                    bannerStatus = "Banner failed"
+                    bannerError = Triple(error.code, error.domain, error.message)
+                    showBanner = false
+                }
+            }
         }
     }
-    
-    // Load banner AFTER composable is displayed (not in init)
+
+    // Load ad after composable is displayed
     LaunchedEffect(Unit) {
-        android.util.Log.d("BannerAdManager", "LaunchedEffect: Starting banner load")
-        BannerAdManager.startLoadingBanner(adView)
+        android.util.Log.d("BannerAd", "LaunchedEffect: Loading banner ad")
+        val adRequest = com.google.android.gms.ads.AdRequest.Builder().build()
+        adView.loadAd(adRequest)
     }
 
-    // Mirror lifecycle events so AdMob can manage network requests correctly.
+    // Mirror lifecycle events
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    android.util.Log.d("BannerAdManager", "AdView resumed")
-                    adView.resume()
-                }
-
-                Lifecycle.Event.ON_PAUSE -> {
-                    android.util.Log.d("BannerAdManager", "AdView paused")
-                    adView.pause()
-                }
-
-                Lifecycle.Event.ON_DESTROY -> {
-                    android.util.Log.d("BannerAdManager", "AdView destroyed")
-                    adView.destroy()
-                    BannerAdManager.cleanup(adView)
-                }
-
+                Lifecycle.Event.ON_RESUME -> adView.resume()
+                Lifecycle.Event.ON_PAUSE -> adView.pause()
+                Lifecycle.Event.ON_DESTROY -> adView.destroy()
                 else -> Unit
             }
         }
@@ -703,38 +704,69 @@ private fun BannerAd(
         onDispose {
             lifecycle.removeObserver(observer)
             adView.destroy()
-            BannerAdManager.cleanup(adView)
         }
     }
 
-    // Get status and error details for display
-    val status = remember(adView) { BannerAdManager.getStatus(adView) }
-    val errorDetails = remember(adView) { BannerAdManager.getLastError(adView) }
-    
-    // Show status or error in banner area
+    // Display banner or error
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(90.dp)
             .background(
                 when {
-                    errorDetails != null -> Color(0xFFFFCDD2)
-                    status.contains("loaded", ignoreCase = true) -> Color(0xFFC8E6C9)
-                    else -> Color(0xFFFFF9C4)
+                    bannerError != null -> Color(0xFFFFCDD2)  // Light red for error
+                    showBanner -> Color(0xFFC8E6C9)           // Light green for loaded
+                    else -> Color(0xFFFFF9C4)                 // Light yellow for loading
                 }
             ),
         contentAlignment = Alignment.Center
     ) {
-        if (errorDetails != null) {
-            Column(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Banner failed", fontSize = 10.sp, color = Color.Red, fontWeight = FontWeight.Bold)
-                Text("Code: ${errorDetails.first}", fontSize = 9.sp, color = Color.Red)
-                Text(errorDetails.second, fontSize = 8.sp, color = Color.Red)
+        if (bannerError != null) {
+            // Show error details
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Banner Error",
+                    fontSize = 10.sp,
+                    color = Color.Red,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Code: ${bannerError!!.first}",
+                    fontSize = 9.sp,
+                    color = Color.Red
+                )
+                Text(
+                    "Domain: ${bannerError!!.second}",
+                    fontSize = 8.sp,
+                    color = Color.Red
+                )
+                Text(
+                    "Msg: ${bannerError!!.third}",
+                    fontSize = 8.sp,
+                    color = Color.Red
+                )
             }
-        } else if (status.contains("loaded", ignoreCase = true)) {
-            Text(status, fontSize = 12.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+        } else if (showBanner) {
+            // Show actual ad
+            AndroidView(
+                factory = { adView },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            )
         } else {
-            Text(status, fontSize = 12.sp, color = Color(0xFFF57F17), fontWeight = FontWeight.Bold)
+            // Show loading status
+            Text(
+                bannerStatus,
+                fontSize = 12.sp,
+                color = Color(0xFFF57F17),
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
