@@ -653,7 +653,8 @@ private fun BannerAd(
     val adView = remember {
         android.util.Log.d("BannerAdManager", "Creating AdView")
         AdView(context).apply {
-            setAdSize(AdSize.BANNER)
+            // Use adaptive banner size - automatically scales based on screen width
+            setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, 320))
             // Start delayed load with retry logic
             BannerAdManager.startLoadingBanner(this)
         }
@@ -696,6 +697,6 @@ private fun BannerAd(
         factory = { adView },
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .height(50.dp),  // Adaptive banner height (typically 50-90 dp depending on device)
     )
 }
