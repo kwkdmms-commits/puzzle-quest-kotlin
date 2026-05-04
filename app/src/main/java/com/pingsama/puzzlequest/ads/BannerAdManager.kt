@@ -57,9 +57,11 @@ object BannerAdManager {
             // Initialize state for this AdView
             if (!adViewStates.containsKey(adView)) {
                 adViewStates[adView] = AdViewState(context)
+                Log.d(TAG, "AdView state initialized")
             }
             
             val state = adViewStates[adView] ?: return
+            state.status = "Banner loading"  // Update status immediately
             
             // Set up the ad listener
             adView.adListener = createAdListener(adView)
