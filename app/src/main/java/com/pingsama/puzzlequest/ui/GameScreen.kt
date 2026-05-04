@@ -757,7 +757,7 @@ private fun BannerAd(
                 factory = { adView },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .wrapContentHeight()
+                    .height(50.dp)
             )
         } else {
             // Show loading status
