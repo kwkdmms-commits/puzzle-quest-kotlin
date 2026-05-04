@@ -707,13 +707,56 @@ private fun BannerAd(
         }
     }
 
-    // AndroidView with proper sizing
-    // Width: MATCH_PARENT (fillMaxWidth)
-    // Height: Up to 90dp for adaptive banner (will be smaller if ad is smaller)
-    AndroidView(
-        factory = { adView },
-        modifier = modifier
-            .fillMaxWidth()
-            .height(90.dp),
-    )
+    // Get error details for temporary debug display
+    val errorDetails = remember(adView) {
+        BannerAdManager.getLastError(adView)
+    }
+    
+    // TEMPORARY DEBUG: Show error details if banner failed to load
+    if (errorDetails != null) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(90.dp)
+                .background(Color(0xFFFFCDD2)),  // Light red background
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Banner Error (Debug)",
+                    fontSize = 10.sp,
+                    color = Color.Red,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Code: ${errorDetails.first}",
+                    fontSize = 9.sp,
+                    color = Color.Red
+                )
+                Text(
+                    text = "Msg: ${errorDetails.second}",
+                    fontSize = 9.sp,
+                    color = Color.Red
+                )
+                Text(
+                    text = "Info: ${errorDetails.third}",
+                    fontSize = 8.sp,
+                    color = Color.Red
+                )
+            }
+        }
+    } else {
+        // Normal AdView display
+        AndroidView(
+            factory = { adView },
+            modifier = modifier
+                .fillMaxWidth()
+                .height(90.dp),
+        )
+    }
 }

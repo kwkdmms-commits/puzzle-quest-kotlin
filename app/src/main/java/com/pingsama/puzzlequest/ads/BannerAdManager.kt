@@ -38,6 +38,9 @@ object BannerAdManager {
         var isLoading: Boolean = false,
         var loadScheduled: Boolean = false,
         var retryScheduled: Boolean = false,
+        var lastErrorCode: Int = 0,
+        var lastErrorMessage: String = "",
+        var lastResponseInfo: String = "",
     )
     
     /**
@@ -125,6 +128,12 @@ object BannerAdManager {
                     Log.e(TAG, "  Error Code: ${adError.code}")
                     Log.e(TAG, "  Error Domain: ${adError.domain}")
                     Log.e(TAG, "  Error Message: ${adError.message}")
+                    Log.e(TAG, "  Response Info: ${adError.responseInfo}")
+                    
+                    // Store error details for temporary debug display
+                    state.lastErrorCode = adError.code
+                    state.lastErrorMessage = adError.message ?: "Unknown error"
+                    state.lastResponseInfo = adError.responseInfo?.toString() ?: "No response info"
                     
                     // Increment retry count
                     state.retryCount++
@@ -147,6 +156,18 @@ object BannerAdManager {
                     Log.e(TAG, "Error in onAdFailedToLoad: ${e.message}", e)
                 }
             }
+        }
+    }
+    
+    /**
+     * Get last error details for temporary debug display (TEMPORARY - for diagnosis only).
+     */
+    fun getLastError(adView: AdView): Triple<Int, String, String>? {
+        val state = adViewStates[adView] ?: return null
+        return if (state.lastErrorCode != 0) {
+            Triple(state.lastErrorCode, state.lastErrorMessage, state.lastResponseInfo)
+        } else {
+            null
         }
     }
     
