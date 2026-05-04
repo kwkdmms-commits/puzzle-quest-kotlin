@@ -41,6 +41,7 @@ object BannerAdManager {
         var lastErrorCode: Int = 0,
         var lastErrorMessage: String = "",
         var lastResponseInfo: String = "",
+        var status: String = "Initializing",  // For visible status display
     )
     
     /**
@@ -90,6 +91,7 @@ object BannerAdManager {
             }
             
             state.isLoading = true
+            state.status = "Banner loading"
             Log.d(TAG, "BANNER_LOAD_START: Attempt ${state.retryCount + 1}/$MAX_RETRIES")
             
             val adRequest = AdRequest.Builder().build()
@@ -112,6 +114,7 @@ object BannerAdManager {
                 try {
                     val state = adViewStates[adView] ?: return
                     state.isLoading = false
+                    state.status = "Banner loaded"
                     Log.d(TAG, "BANNER_LOADED: Successfully loaded after ${state.retryCount} retries")
                 } catch (e: Throwable) {
                     Log.e(TAG, "Error in onAdLoaded: ${e.message}", e)
@@ -134,6 +137,7 @@ object BannerAdManager {
                     state.lastErrorCode = adError.code
                     state.lastErrorMessage = adError.message ?: "Unknown error"
                     state.lastResponseInfo = adError.responseInfo?.toString() ?: "No response info"
+                    state.status = "Banner failed: ${adError.code}"
                     
                     // Increment retry count
                     state.retryCount++
@@ -150,6 +154,7 @@ object BannerAdManager {
                             }, RETRY_DELAY_MS)
                         }
                     } else {
+                        state.status = "Banner failed: Max retries exceeded"
                         Log.e(TAG, "BANNER_FAILED_PERMANENTLY: Max retries ($MAX_RETRIES) exceeded")
                     }
                 } catch (e: Throwable) {
@@ -157,6 +162,14 @@ object BannerAdManager {
                 }
             }
         }
+    }
+    
+    /**
+     * Get current banner status for visible display.
+     */
+    fun getStatus(adView: AdView): String {
+        val state = adViewStates[adView] ?: return "Unknown"
+        return state.status
     }
     
     /**

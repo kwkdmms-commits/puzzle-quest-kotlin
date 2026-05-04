@@ -660,8 +660,8 @@ private fun BannerAd(
     val adView = remember {
         android.util.Log.d("BannerAdManager", "Creating AdView with width=$adWidthDp")
         AdView(context).apply {
-            // Set ad unit ID first
-            adUnitId = "ca-app-pub-4699326641068010/2797397808"
+            // Set ad unit ID first - TEMPORARILY using Google TEST ID for diagnosis
+            adUnitId = "ca-app-pub-3940256099942544/6300978111"
             
             // Calculate and set adaptive banner size
             val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, adWidthDp)
@@ -707,56 +707,34 @@ private fun BannerAd(
         }
     }
 
-    // Get error details for temporary debug display
-    val errorDetails = remember(adView) {
-        BannerAdManager.getLastError(adView)
-    }
+    // Get status and error details for display
+    val status = remember(adView) { BannerAdManager.getStatus(adView) }
+    val errorDetails = remember(adView) { BannerAdManager.getLastError(adView) }
     
-    // TEMPORARY DEBUG: Show error details if banner failed to load
-    if (errorDetails != null) {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(90.dp)
-                .background(Color(0xFFFFCDD2)),  // Light red background
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Banner Error (Debug)",
-                    fontSize = 10.sp,
-                    color = Color.Red,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Code: ${errorDetails.first}",
-                    fontSize = 9.sp,
-                    color = Color.Red
-                )
-                Text(
-                    text = "Msg: ${errorDetails.second}",
-                    fontSize = 9.sp,
-                    color = Color.Red
-                )
-                Text(
-                    text = "Info: ${errorDetails.third}",
-                    fontSize = 8.sp,
-                    color = Color.Red
-                )
+    // Show status or error in banner area
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(90.dp)
+            .background(
+                when {
+                    errorDetails != null -> Color(0xFFFFCDD2)
+                    status.contains("loaded", ignoreCase = true) -> Color(0xFFC8E6C9)
+                    else -> Color(0xFFFFF9C4)
+                }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (errorDetails != null) {
+            Column(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Banner failed", fontSize = 10.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                Text("Code: ${errorDetails.first}", fontSize = 9.sp, color = Color.Red)
+                Text(errorDetails.second, fontSize = 8.sp, color = Color.Red)
             }
+        } else if (status.contains("loaded", ignoreCase = true)) {
+            Text(status, fontSize = 12.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+        } else {
+            Text(status, fontSize = 12.sp, color = Color(0xFFF57F17), fontWeight = FontWeight.Bold)
         }
-    } else {
-        // Normal AdView display
-        AndroidView(
-            factory = { adView },
-            modifier = modifier
-                .fillMaxWidth()
-                .height(90.dp),
-        )
     }
 }
